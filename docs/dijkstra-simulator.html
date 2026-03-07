@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dijkstra — Lavagna Interattiva</title>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Display:wght@400;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<style>
+:root {
+  --primary:#1a73e8; --on-primary:#fff;
+  --primary-c:#d3e3fd; --on-primary-c:#041e49;
+  --secondary:#188038; --secondary-c:#ceead6; --on-secondary-c:#0d652d;
+  --tertiary:#e37400; --tertiary-c:#fce8b2; --on-tertiary-c:#5b3e00;
+  --error:#c5221f; --error-c:#fce8e6;
+  --surf:#fff; --surf-low:#f8f9fa; --surf-c:#f1f3f4; --surf-hi:#e8eaed;
+  --on-surf:#202124; --on-surf-v:#5f6368;
+  --out:#dadce0; --out-v:#f1f3f4;
+  --sh1:0 1px 2px rgba(0,0,0,.12),0 1px 3px rgba(0,0,0,.08);
+  --sh2:0 1px 3px rgba(0,0,0,.12),0 2px 6px rgba(0,0,0,.10);
+  --sh3:0 2px 6px rgba(0,0,0,.12),0 4px 12px rgba(0,0,0,.10);
+  --r-xs:4px;--r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:28px;--r-f:9999px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Roboto',sans-serif;background:var(--surf-low);color:var(--on-surf);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;}
+
+/* TOP BAR */
+.top-bar{background:var(--surf);border-bottom:1px solid var(--out);height:60px;display:flex;align-items:center;padding:0 14px;gap:8px;position:sticky;top:0;z-index:200;box-shadow:var(--sh1);flex-shrink:0;}
+.bar-logo{width:32px;height:32px;border-radius:var(--r-sm);background:linear-gradient(135deg,#4285f4 0%,#34a853 50%,#fbbc04 75%,#ea4335 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Google Sans Display',sans-serif;font-weight:700;font-size:15px;flex-shrink:0;}
+.bar-title{font-family:'Google Sans',sans-serif;font-size:1.1rem;font-weight:500;flex:1;white-space:nowrap;}
+.bar-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.md-sel-wrap{display:flex;align-items:center;gap:5px;}
+.md-sel-wrap label{font-family:'Google Sans',sans-serif;font-size:.78rem;color:var(--on-surf-v);white-space:nowrap;}
+select.md-sel{height:34px;padding:0 28px 0 9px;border-radius:var(--r-sm);border:1px solid var(--out);background:var(--surf);font-family:'Google Sans',sans-serif;font-size:.82rem;color:var(--on-surf);cursor:pointer;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24'%3E%3Cpath fill='%235f6368' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 5px center;transition:border-color .15s,box-shadow .15s;}
+select.md-sel:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(26,115,232,.18);}
+
+/* BUTTONS */
+.md-btn{display:inline-flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:'Google Sans',sans-serif;font-size:.84rem;font-weight:500;border-radius:var(--r-f);padding:0 18px;height:34px;position:relative;overflow:hidden;transition:box-shadow .15s,filter .15s;user-select:none;white-space:nowrap;}
+.md-btn .mi{font-size:17px;}
+.btn-filled{background:var(--primary);color:#fff;}
+.btn-filled:hover{box-shadow:var(--sh2);filter:brightness(1.06);}
+.btn-tonal-g{background:var(--secondary-c);color:var(--on-secondary-c);}
+.btn-tonal-g:hover{filter:brightness(.97);}
+.btn-outlined{background:transparent;color:var(--primary);border:1px solid var(--out);}
+.btn-outlined:hover{background:rgba(26,115,232,.07);}
+.btn-text{background:transparent;color:var(--primary);padding:0 10px;}
+.btn-text:hover{background:rgba(26,115,232,.07);}
+.md-btn:disabled{opacity:.38;cursor:not-allowed;pointer-events:none;}
+.md-icon-btn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:none;background:transparent;border-radius:var(--r-f);cursor:pointer;color:var(--on-surf-v);transition:background .15s;}
+.md-icon-btn:hover{background:rgba(32,33,36,.08);}
+.md-icon-btn .mi{font-size:19px;}
+.dvd{width:1px;height:22px;background:var(--out);margin:0 2px;flex-shrink:0;}
+.ripple{position:absolute;border-radius:50%;transform:scale(0);animation:rip .5s linear;background:rgba(255,255,255,.28);pointer-events:none;}
+@keyframes rip{to{transform:scale(4);opacity:0;}}
+
+/* LAYOUT */
+.app-body{display:grid;grid-template-columns:1fr 290px;flex:1;min-height:0;overflow:hidden;}
+.main{padding:14px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+
+/* CARD */
+.md-card{background:var(--surf);border-radius:var(--r-lg);box-shadow:var(--sh1);overflow:hidden;}
+.card-hdr{padding:12px 16px 10px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--out);}
+.card-hdr .ci{color:var(--primary);font-size:20px;}
+.card-hdr h2{font-family:'Google Sans',sans-serif;font-size:.9rem;font-weight:500;flex:1;}
+.card-hdr .csub{font-size:.7rem;color:var(--on-surf-v);}
+.card-body{padding:14px;}
+
+/* GRAPH */
+.graph-wrap{position:relative;width:100%;background:var(--surf-low);border:1px solid var(--out);border-radius:var(--r-sm);overflow:hidden;}
+svg#graph{display:block;width:100%;height:320px;cursor:default;}
+.drag-hint{position:absolute;bottom:6px;right:8px;font-size:.68rem;color:var(--on-surf-v);font-family:'Roboto',sans-serif;display:flex;align-items:center;gap:3px;pointer-events:none;}
+.drag-hint .mi{font-size:13px;}
+
+/* BANNER */
+.md-banner{display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:var(--r-sm);font-size:.8rem;font-family:'Roboto',sans-serif;line-height:1.5;transition:all .2s;margin-top:10px;}
+.md-banner .mi{font-size:17px;flex-shrink:0;}
+.b-info{background:var(--primary-c);color:var(--on-primary-c);}
+.b-ok{background:var(--secondary-c);color:var(--on-secondary-c);}
+.b-err{background:var(--error-c);color:var(--error);}
+
+/* ITERATION TABLE */
+.tbl-wrap{overflow-x:auto;overflow-y:visible;}
+table.iter-tbl{border-collapse:collapse;font-family:'Roboto Mono',monospace;font-size:.79rem;width:100%;min-width:max-content;}
+.iter-tbl th{background:var(--surf-hi);color:var(--on-surf-v);font-family:'Google Sans',sans-serif;font-size:.66rem;font-weight:500;text-transform:uppercase;letter-spacing:.07em;padding:7px 10px;text-align:center;border:1px solid var(--out);white-space:nowrap;}
+.iter-tbl th.th-node{background:var(--primary-c);color:var(--on-primary-c);}
+.iter-tbl td{border:1px solid var(--out);padding:3px 5px;text-align:center;vertical-align:middle;}
+.iter-tbl td.td-node{background:var(--surf-c);font-family:'Google Sans',sans-serif;font-weight:700;font-size:.88rem;color:var(--on-surf);min-width:36px;}
+.iter-tbl td.td-node.start-node{color:var(--primary);}
+
+/* Student input */
+.iter-tbl td.cell-input{padding:2px 3px;}
+.cell-inp{width:54px;height:28px;border:1px solid transparent;border-radius:var(--r-xs);background:transparent;font-family:'Roboto Mono',monospace;font-size:.79rem;color:var(--on-surf);text-align:center;outline:none;transition:border-color .15s,background .15s;padding:0 3px;}
+.cell-inp:focus{border-color:var(--primary);background:rgba(26,115,232,.05);}
+.cell-inp.c-ok{background:var(--secondary-c);color:var(--on-secondary-c);border-color:var(--secondary);}
+.cell-inp.c-err{background:var(--error-c);color:var(--error);border-color:var(--error);}
+
+/* Revealed cells */
+.iter-tbl td.cell-rev{font-family:'Roboto Mono',monospace;font-size:.79rem;padding:5px 8px;}
+.iter-tbl td.cell-rev .rv-val{font-size:.88rem;font-weight:500;}
+.iter-tbl td.cell-rev .rv-val.rv-inf{font-size:1.15rem;color:#bdc1c6;font-weight:400;}
+.iter-tbl td.cell-rev.rev-min{background:var(--primary-c);color:var(--primary);}
+.iter-tbl td.cell-rev.rev-upd{background:var(--tertiary-c);color:var(--on-tertiary-c);}
+.iter-tbl td.cell-rev.rev-lock{background:var(--secondary-c);color:var(--on-secondary-c);}
+
+/* "Nodo attraversato" row */
+.iter-tbl tr.row-nodo td{background:#fffde7;}
+.iter-tbl tr.row-nodo td.td-node{background:#fff9c4;color:var(--on-surf-v);font-size:.7rem;font-weight:500;font-family:'Roboto',sans-serif;letter-spacing:.01em;white-space:nowrap;}
+.node-inp{width:36px;height:26px;border:1px solid transparent;border-radius:var(--r-xs);background:transparent;font-family:'Google Sans',sans-serif;font-size:.88rem;font-weight:700;color:var(--on-surf);text-align:center;outline:none;transition:border-color .15s,background .15s;padding:0 2px;text-transform:uppercase;}
+.node-inp:focus{border-color:#fbbc04;background:rgba(251,188,4,.1);}
+.node-inp.ni-ok{background:#fff9c4;color:#5b3e00;border-color:#fbbc04;font-weight:700;}
+.node-inp.ni-err{background:var(--error-c);color:var(--error);border-color:var(--error);}
+.nodo-rev{font-family:'Google Sans',sans-serif;font-weight:700;font-size:.92rem;color:#5b3e00;}
+
+/* Legend */
+.leg{display:flex;flex-wrap:wrap;gap:9px;padding:10px 0 2px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--on-surf-v);font-family:'Roboto',sans-serif;}
+.leg-sq{width:11px;height:11px;border-radius:3px;flex-shrink:0;}
+.leg-sep{width:1px;height:14px;background:var(--out);}
+
+/* FOOTER */
+.app-footer{background:var(--surf-c);border-top:1px solid var(--out);padding:9px 20px;display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--on-surf-v);font-family:'Roboto',sans-serif;line-height:1.55;flex-shrink:0;}
+.app-footer .mi{font-size:17px;color:#e37400;flex-shrink:0;}
+.app-footer strong{color:var(--on-surf);}
+
+/* SIDEBAR */
+.sidebar{background:var(--surf);border-left:1px solid var(--out);display:flex;flex-direction:column;overflow-y:auto;}
+.sb-sec{padding:13px 13px;border-bottom:1px solid var(--out);}
+.sb-title{font-family:'Google Sans',sans-serif;font-size:.63rem;font-weight:500;text-transform:uppercase;letter-spacing:.09em;color:var(--on-surf-v);margin-bottom:9px;display:flex;align-items:center;gap:4px;}
+.sb-title .mi{font-size:13px;}
+
+.how-to{font-size:.77rem;color:var(--on-surf-v);line-height:1.8;}
+.how-to b{color:var(--on-surf);}
+.how-to code{background:var(--surf-hi);padding:1px 5px;border-radius:3px;font-family:'Roboto Mono',monospace;font-size:.75rem;}
+
+.chips{display:flex;flex-wrap:wrap;gap:5px;min-height:26px;}
+.md-chip{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:var(--r-f);font-family:'Google Sans',sans-serif;font-size:.78rem;font-weight:500;border:1px solid var(--out);background:var(--surf);color:var(--on-surf);}
+.chip-done{background:var(--primary-c);color:var(--on-primary-c);border-color:transparent;}
+.chips-empty{font-size:.78rem;color:var(--on-surf-v);font-style:italic;}
+
+.tree-list{display:flex;flex-direction:column;gap:3px;}
+.tree-row{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:var(--r-sm);}
+.tree-row:nth-child(odd){background:var(--surf-low);}
+.tree-badge{width:24px;height:24px;border-radius:var(--r-f);background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Google Sans',sans-serif;font-weight:700;font-size:.76rem;flex-shrink:0;}
+.tree-badge.start{background:var(--tertiary);}
+.tree-info{flex:1;font-family:'Roboto Mono',monospace;font-size:.74rem;color:var(--on-surf);}
+.tree-cost{font-family:'Google Sans',sans-serif;font-weight:700;font-size:.82rem;color:var(--primary);}
+
+.score-bar{display:flex;gap:7px;padding:11px 13px;background:var(--surf-low);border-top:1px solid var(--out);margin-top:auto;}
+.sc-chip{flex:1;background:var(--surf);border:1px solid var(--out);border-radius:var(--r-md);padding:8px;text-align:center;}
+.sc-lbl{font-size:.58rem;font-family:'Google Sans',sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--on-surf-v);margin-bottom:2px;}
+.sc-val{font-size:1.15rem;font-weight:700;font-family:'Google Sans Display',sans-serif;}
+
+/* DIALOG */
+.md-scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:300;align-items:center;justify-content:center;}
+.md-scrim.open{display:flex;animation:sc-in .18s ease;}
+@keyframes sc-in{from{opacity:0}to{opacity:1}}
+.md-dialog{background:var(--surf);border-radius:var(--r-xl);box-shadow:var(--sh3);width:340px;max-width:96vw;display:flex;flex-direction:column;overflow:hidden;animation:dl-in .2s cubic-bezier(.2,0,0,1);}
+@keyframes dl-in{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+.dlg-hdr{padding:20px 20px 12px;display:flex;gap:12px;align-items:flex-start;}
+.dlg-icon{width:36px;height:36px;border-radius:var(--r-f);background:var(--primary-c);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;}
+.dlg-icon .mi{font-size:20px;}
+.dlg-t h3{font-family:'Google Sans',sans-serif;font-size:1.05rem;font-weight:500;}
+.dlg-t p{font-size:.78rem;color:var(--on-surf-v);margin-top:2px;}
+.dlg-body{padding:0 20px 12px;font-size:.82rem;color:var(--on-surf-v);line-height:1.65;}
+.dlg-actions{padding:8px 20px 16px;display:flex;gap:7px;justify-content:flex-end;border-top:1px solid var(--out);}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.anim{animation:fadeUp .28s ease;}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="bar-logo">D</div>
+  <div class="bar-title">Dijkstra — Lavagna Interattiva</div>
+  <div class="bar-actions">
+    <div class="md-sel-wrap">
+      <label>Partenza</label>
+      <select class="md-sel" id="startSel"></select>
+    </div>
+    <button class="md-btn btn-outlined" id="regenBtn" onclick="regenerate()">
+      <span class="material-icons-round mi">shuffle</span>Nuovo grafo
+    </button>
+    <button class="md-btn btn-tonal-g" id="checkBtn" onclick="checkWork()" disabled>
+      <span class="material-icons-round mi">check_circle</span>Verifica
+    </button>
+    <button class="md-btn btn-filled" id="playBtn" onclick="revealAll()" disabled>
+      <span class="material-icons-round mi">play_arrow</span>Soluzione
+    </button>
+    <span class="dvd"></span>
+    <button class="md-icon-btn" onclick="regenerate()" title="Rigenera">
+      <span class="material-icons-round mi">refresh</span>
+    </button>
+  </div>
+</div>
+
+<div class="app-body">
+  <div class="main">
+
+    <!-- Graph card -->
+    <div class="md-card">
+      <div class="card-hdr">
+        <span class="material-icons-round ci">hub</span>
+        <h2 id="graphTitle">Grafo generato casualmente</h2>
+        <span class="csub" id="graphSub"></span>
+      </div>
+      <div class="card-body" style="padding-bottom:10px;">
+        <div class="graph-wrap" id="graphWrap">
+          <svg id="graph" viewBox="0 0 580 320"></svg>
+          <div class="drag-hint">
+            <span class="material-icons-round mi">open_with</span>
+            Trascina i nodi per riposizionarli
+          </div>
+        </div>
+        <div class="md-banner b-info" id="banner">
+          <span class="material-icons-round mi">info</span>
+          <span id="bannerTxt">Compila la tabella iterazioni, poi premi <strong>▶ Soluzione</strong>.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table card -->
+    <div class="md-card">
+      <div class="card-hdr">
+        <span class="material-icons-round ci">table_chart</span>
+        <h2>Tabella iterazioni Dijkstra</h2>
+        <span class="csub">Righe = nodi (ord. alfabetico) · Colonne = passo i</span>
+      </div>
+      <div class="card-body">
+        <div class="tbl-wrap" id="tblWrap"></div>
+        <div class="leg">
+          <div class="leg-item"><div class="leg-sq" style="background:var(--primary-c);border:1.5px solid var(--primary)"></div>Nodo estratto (min)</div>
+          <div class="leg-item"><div class="leg-sq" style="background:var(--tertiary-c)"></div>Distanza aggiornata</div>
+          <div class="leg-item"><div class="leg-sq" style="background:var(--secondary-c)"></div>Nodo definitivo</div>
+          <div class="leg-sep"></div>
+          <div class="leg-item" style="color:var(--on-surf);font-weight:500;">
+            <span class="material-icons-round mi" style="font-size:14px;color:var(--primary)">keyboard</span>
+            Scrivi <code style="background:var(--surf-hi);padding:1px 5px;border-radius:3px;font-family:'Roboto Mono',monospace;font-size:.7rem;">INF</code> per ∞ — altre parole non accettate
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <div class="sidebar">
+    <div class="sb-sec">
+      <div class="sb-title"><span class="material-icons-round mi">help_outline</span>Come funziona</div>
+      <div class="how-to">
+        <b>1.</b> Osserva il grafo (trascina i nodi)<br>
+        <b>2.</b> Per ogni cella scrivi il costo F(v)<br>
+        &nbsp;&nbsp;&nbsp;usa <code>INF</code> per infinito<br>
+        <b>3.</b> <em>Verifica</em> per un feedback immediato<br>
+        <b>4.</b> <em>▶ Soluzione</em> rivela tutto<br>
+        <b>5.</b> <em>Nuovo grafo</em> per un esercizio diverso
+      </div>
+    </div>
+
+    <div class="sb-sec">
+      <div class="sb-title"><span class="material-icons-round mi">done_all</span>Ordine estrazione (S)</div>
+      <div class="chips" id="extractedChips">
+        <span class="chips-empty">—</span>
+      </div>
+    </div>
+
+    <div class="sb-sec" style="flex:1;">
+      <div class="sb-title"><span class="material-icons-round mi">account_tree</span>Albero cammini minimi</div>
+      <div id="treeList" style="font-size:.78rem;color:var(--on-surf-v);font-style:italic;">
+        Disponibile dopo ▶ Soluzione
+      </div>
+    </div>
+
+    <div class="score-bar">
+      <div class="sc-chip">
+        <div class="sc-lbl">Corrette</div>
+        <div class="sc-val" id="scVal">—</div>
+      </div>
+      <div class="sc-chip">
+        <div class="sc-lbl">Errori</div>
+        <div class="sc-val" id="scErr">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm dialog -->
+<div class="md-scrim" id="confirmScrim">
+  <div class="md-dialog">
+    <div class="dlg-hdr">
+      <div class="dlg-icon"><span class="material-icons-round mi">play_arrow</span></div>
+      <div class="dlg-t">
+        <h3>Mostrare la soluzione?</h3>
+        <p>La tabella completa e l'albero verranno rivelati.</p>
+      </div>
+    </div>
+    <div class="dlg-body">Vuoi davvero vedere la soluzione? Potrai sempre generare un nuovo grafo.</div>
+    <div class="dlg-actions">
+      <button class="md-btn btn-text" onclick="closeConfirm()">Annulla</button>
+      <button class="md-btn btn-filled" onclick="doReveal()">
+        <span class="material-icons-round mi">play_arrow</span>Mostra
+      </button>
+    </div>
+  </div>
+</div>
+
+<footer class="app-footer">
+  <span class="material-icons-round mi">warning_amber</span>
+  <span><strong>Nota:</strong> Questa applicazione potrebbe presentare errori. In caso di dubbi, fai uno screenshot e discutine con il docente in classe.</span>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════
+// GRAPH GENERATION
+// ═══════════════════════════════════════════════════
+const ALL = ['A','B','C','D','E','F','G'];
+
+// Fixed layout positions in viewBox 580×320
+const BASE_POS = {
+  A:{x:75,  y:160},
+  B:{x:185, y:68 },
+  C:{x:185, y:252},
+  D:{x:295, y:160},
+  E:{x:405, y:68 },
+  F:{x:405, y:252},
+  G:{x:510, y:160}
+};
+
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+
+function generateGraph(){
+  const n=rnd(5,7);
+  const nodes=ALL.slice(0,n);
+  const edges=[];
+  const eSet=new Set();
+  function addEdge(u,v,w){
+    const k=[u,v].sort().join('-');
+    if(!eSet.has(k)){eSet.add(k);edges.push({u,v,w});}
+  }
+  // Spanning tree
+  const sh=[...nodes].sort(()=>Math.random()-.5);
+  for(let i=1;i<sh.length;i++) addEdge(sh[i-1],sh[i],rnd(1,9));
+  // Extra edges
+  let att=0;
+  while(edges.length < Math.min(nodes.length+rnd(1,3)-1, nodes.length*(nodes.length-1)/2) && att<80){
+    att++;
+    const a=nodes[rnd(0,nodes.length-1)], b=nodes[rnd(0,nodes.length-1)];
+    if(a!==b) addEdge(a,b,rnd(1,9));
+  }
+  return {nodes,edges};
+}
+
+// ═══════════════════════════════════════════════════
+// DIJKSTRA — tie-break alphabetical
+// ═══════════════════════════════════════════════════
+function dijkstra(nodes,edges,src){
+  const adj={};
+  nodes.forEach(n=>adj[n]=[]);
+  edges.forEach(({u,v,w})=>{adj[u].push({to:v,w});adj[v].push({to:u,w});});
+  const dist={},prev={};
+  nodes.forEach(n=>{dist[n]=Infinity;prev[n]=null;});
+  dist[src]=0;
+  const unvis=new Set(nodes);
+  const snapshots=[],extractOrder=[];
+  while(unvis.size){
+    let u=null;
+    unvis.forEach(n=>{
+      if(u===null) u=n;
+      else if(dist[n]<dist[u]) u=n;
+      else if(dist[n]===dist[u]&&n<u) u=n;
+    });
+    if(dist[u]===Infinity) break;
+    const dbefore={};nodes.forEach(n=>dbefore[n]=dist[n]);
+    unvis.delete(u); extractOrder.push(u);
+    const updated=new Set();
+    adj[u].forEach(({to,w})=>{
+      if(unvis.has(to)){
+        const nd=dist[u]+w;
+        if(nd<dist[to]){dist[to]=nd;prev[to]=u;updated.add(to);}
+      }
+    });
+    const dafter={};nodes.forEach(n=>dafter[n]=dist[n]);
+    snapshots.push({extracted:u,dist_before:dbefore,dist_after:dafter,updated:new Set(updated)});
+  }
+  const treeEdges=new Set();
+  nodes.forEach(n=>{if(prev[n])treeEdges.add([n,prev[n]].sort().join('-'));});
+  return{dist,prev,snapshots,extractOrder,treeEdges};
+}
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let G={nodes:[],edges:[]};
+let nodePos={};   // draggable positions, keyed by node id
+let SRC='A', SOL=null, revealed=false;
+
+// ═══════════════════════════════════════════════════
+// SVG — DRAGGABLE NODES
+// ═══════════════════════════════════════════════════
+const svg=document.getElementById('graph');
+let dragging=null, dragOffset={x:0,y:0};
+
+function initNodePos(){
+  nodePos={};
+  G.nodes.forEach(n=>nodePos[n]={x:BASE_POS[n].x,y:BASE_POS[n].y});
+}
+
+function buildSVG(treeEdges=null){
+  svg.innerHTML='';
+  const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+  defs.innerHTML=`<filter id="sh1"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="rgba(0,0,0,.13)"/></filter>
+  <filter id="sh2"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="rgba(0,0,0,.16)"/></filter>`;
+  svg.appendChild(defs);
+
+  const edgeG=document.createElementNS('http://www.w3.org/2000/svg','g');
+  edgeG.id='edgeLayer'; svg.appendChild(edgeG);
+  const nodeG=document.createElementNS('http://www.w3.org/2000/svg','g');
+  nodeG.id='nodeLayer'; svg.appendChild(nodeG);
+
+  // Edges
+  G.edges.forEach(({u,v,w})=>{
+    const key=[u,v].sort().join('-');
+    const isTree=treeEdges&&treeEdges.has(key);
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.dataset.edge=key;
+
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    const p1=nodePos[u],p2=nodePos[v];
+    line.setAttribute('x1',p1.x);line.setAttribute('y1',p1.y);
+    line.setAttribute('x2',p2.x);line.setAttribute('y2',p2.y);
+    line.setAttribute('stroke',isTree?'#1a73e8':'#dadce0');
+    line.setAttribute('stroke-width',isTree?'3.2':'2');
+    if(isTree)line.setAttribute('stroke-dasharray','7,3');
+    line.setAttribute('stroke-linecap','round');
+    g.appendChild(line);
+
+    // Weight pill
+    const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
+    const wr=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    wr.setAttribute('x',mx-11);wr.setAttribute('y',my-10);wr.setAttribute('width',22);wr.setAttribute('height',20);
+    wr.setAttribute('rx',10);wr.setAttribute('fill','#fff');wr.setAttribute('filter','url(#sh1)');
+    g.appendChild(wr);
+    const wt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    wt.setAttribute('x',mx);wt.setAttribute('y',my+1);
+    wt.setAttribute('font-family','Roboto Mono,monospace');wt.setAttribute('font-size','11');
+    wt.setAttribute('fill',isTree?'#1a73e8':'#5f6368');
+    wt.setAttribute('text-anchor','middle');wt.setAttribute('dominant-baseline','central');
+    wt.textContent=w;
+    g.appendChild(wt);
+    edgeG.appendChild(g);
+  });
+
+  // Nodes
+  G.nodes.forEach(id=>{
+    const {x,y}=nodePos[id];
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.dataset.node=id;
+    g.style.cursor='grab';
+
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('r',22);
+    const isStart=id===SRC;
+    c.setAttribute('fill',isStart?'#1a73e8':'#fff');
+    c.setAttribute('stroke',isStart?'#1567c8':'#dadce0');
+    c.setAttribute('stroke-width','1.5');
+    c.setAttribute('filter','url(#sh1)');
+    g.appendChild(c);
+
+    const lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x',x);lbl.setAttribute('y',y);
+    lbl.setAttribute('font-family','Google Sans,sans-serif');lbl.setAttribute('font-weight','700');
+    lbl.setAttribute('font-size','14');lbl.setAttribute('text-anchor','middle');
+    lbl.setAttribute('dominant-baseline','central');
+    lbl.setAttribute('fill',isStart?'#fff':'#202124');
+    lbl.textContent=id;
+    g.appendChild(lbl);
+
+    // Cost label when revealed
+    if(treeEdges&&SOL){
+      const d=SOL.dist[id];
+      const dl=document.createElementNS('http://www.w3.org/2000/svg','text');
+      dl.setAttribute('x',x);dl.setAttribute('y',y+38);
+      dl.setAttribute('font-family','Google Sans,sans-serif');
+      dl.setAttribute('font-size','13');
+      dl.setAttribute('font-weight','700');
+      dl.setAttribute('text-anchor','middle');dl.setAttribute('dominant-baseline','central');
+      dl.setAttribute('fill','#1a73e8');
+      dl.textContent=d===Infinity?'∞':d;
+      g.appendChild(dl);
+    }
+
+    // Drag events
+    g.addEventListener('mousedown',startDrag);
+    g.addEventListener('touchstart',startDragTouch,{passive:false});
+
+    nodeG.appendChild(g);
+  });
+
+  // Global drag listeners
+  svg.addEventListener('mousemove',onDrag);
+  svg.addEventListener('mouseup',endDrag);
+  svg.addEventListener('mouseleave',endDrag);
+  svg.addEventListener('touchmove',onDragTouch,{passive:false});
+  svg.addEventListener('touchend',endDrag);
+}
+
+function svgPoint(clientX,clientY){
+  const rect=svg.getBoundingClientRect();
+  const scaleX=580/(rect.width||580);
+  const scaleY=320/(rect.height||320);
+  return{x:(clientX-rect.left)*scaleX, y:(clientY-rect.top)*scaleY};
+}
+
+function startDrag(e){
+  const g=e.currentTarget;
+  dragging=g.dataset.node;
+  const p=svgPoint(e.clientX,e.clientY);
+  dragOffset={x:p.x-nodePos[dragging].x, y:p.y-nodePos[dragging].y};
+  g.style.cursor='grabbing';
+  e.preventDefault();
+}
+function startDragTouch(e){
+  if(e.touches.length!==1)return;
+  const g=e.currentTarget;
+  dragging=g.dataset.node;
+  const t=e.touches[0];
+  const p=svgPoint(t.clientX,t.clientY);
+  dragOffset={x:p.x-nodePos[dragging].x, y:p.y-nodePos[dragging].y};
+  e.preventDefault();
+}
+function onDrag(e){
+  if(!dragging)return;
+  const p=svgPoint(e.clientX,e.clientY);
+  moveNode(dragging,p.x-dragOffset.x, p.y-dragOffset.y);
+}
+function onDragTouch(e){
+  if(!dragging||e.touches.length!==1)return;
+  const t=e.touches[0];
+  const p=svgPoint(t.clientX,t.clientY);
+  moveNode(dragging,p.x-dragOffset.x,p.y-dragOffset.y);
+  e.preventDefault();
+}
+function endDrag(){
+  if(dragging){
+    const g=svg.querySelector(`g[data-node="${dragging}"]`);
+    if(g)g.style.cursor='grab';
+    dragging=null;
+  }
+}
+
+function moveNode(id,nx,ny){
+  nx=Math.max(26,Math.min(554,nx));
+  ny=Math.max(26,Math.min(286,ny));
+  nodePos[id]={x:nx,y:ny};
+  const g=svg.querySelector(`g[data-node="${id}"]`);
+  if(g){
+    g.querySelector('circle').setAttribute('cx',nx);
+    g.querySelector('circle').setAttribute('cy',ny);
+    const txts=g.querySelectorAll('text');
+    txts.forEach(t=>{
+      const fs=parseFloat(t.getAttribute('font-size'));
+      t.setAttribute('x',nx);
+      // node label (fs>=13 and no cost context) sits at center
+      // cost label (bold, fs=13 but placed after) sits at +38
+      // Distinguish: cost label has font-weight=700 AND fill=#1a73e8
+      const isCostLabel=t.getAttribute('fill')==='#1a73e8'&&t.getAttribute('font-weight')==='700';
+      t.setAttribute('y',isCostLabel?ny+38:ny);
+    });
+  }
+  G.edges.forEach(({u,v})=>{
+    if(u!==id&&v!==id)return;
+    const key=[u,v].sort().join('-');
+    const eg=svg.querySelector(`g[data-edge="${key}"]`);
+    if(!eg)return;
+    const line=eg.querySelector('line');
+    const p1=nodePos[u],p2=nodePos[v];
+    line.setAttribute('x1',p1.x);line.setAttribute('y1',p1.y);
+    line.setAttribute('x2',p2.x);line.setAttribute('y2',p2.y);
+    const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
+    const wr=eg.querySelector('rect');const wt=eg.querySelector('text');
+    if(wr){wr.setAttribute('x',mx-11);wr.setAttribute('y',my-10);}
+    if(wt){wt.setAttribute('x',mx);wt.setAttribute('y',my+1);}
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// ITERATION TABLE
+// ═══════════════════════════════════════════════════
+let tableData=[];  // expected values [nodeIdx][stepIdx]
+
+// Accepted characters per cell: digits + INF
+function sanitizeInput(val){
+  // Allow only digits and uppercase INF
+  // Strip anything not digit or I/N/F
+  val=val.toUpperCase();
+  // Only keep if it's a pure number or starts with I→INF
+  let clean='';
+  for(const ch of val){
+    if(/[0-9]/.test(ch)) clean+=ch;
+    else if(ch==='I'||ch==='N'||ch==='F') clean+=ch;
+  }
+  // If we have letters, ensure it can only be INF
+  if(/[INF]/.test(clean)){
+    // Keep only the INF prefix
+    const m=clean.match(/^(I(N(F)?)?)/);
+    clean=m?m[0]:'';
+  }
+  return clean;
+}
+
+function buildTable(revealMode=false){
+  const wrap=document.getElementById('tblWrap');
+  wrap.innerHTML='';
+  if(!SOL)return;
+  const {snapshots,extractOrder}=SOL;
+  const sortedNodes=[...G.nodes].sort();
+  const steps=snapshots.length;
+  tableData=[];
+
+  const table=document.createElement('table');
+  table.className='iter-tbl anim';
+
+  // ── HEADER ──
+  const thead=document.createElement('thead');
+  const hr=document.createElement('tr');
+  const th0=document.createElement('th');th0.className='th-node';th0.textContent='Nodo';hr.appendChild(th0);
+  for(let s=0;s<steps;s++){
+    const th=document.createElement('th');th.textContent=`Passo ${s+1}`;hr.appendChild(th);
+  }
+  thead.appendChild(hr);table.appendChild(thead);
+
+  const tbody=document.createElement('tbody');
+
+  // ── ROW: Nodo attraversato ──
+  const rowNodo=document.createElement('tr');rowNodo.className='row-nodo';
+  const tdNL=document.createElement('td');tdNL.className='td-node';
+  tdNL.style.cssText='font-size:.7rem;font-weight:500;font-family:Roboto,sans-serif;white-space:nowrap;color:var(--on-surf-v);';
+  tdNL.textContent='Nodo attr.';rowNodo.appendChild(tdNL);
+  for(let s=0;s<steps;s++){
+    const td=document.createElement('td');td.style.padding='2px 3px';
+    if(!revealMode){
+      const inp=document.createElement('input');
+      inp.type='text';inp.className='node-inp';inp.id=`ni-${s}`;inp.placeholder='—';inp.maxLength=1;
+      inp.addEventListener('input',function(){
+        let v=this.value.toUpperCase().replace(/[^A-G]/g,'');
+        if(v.length>1)v=v[0];
+        this.value=v;this.classList.remove('ni-ok','ni-err');
+      });
+      inp.addEventListener('keydown',function(e){
+        const ok=['Backspace','Delete','Tab','ArrowLeft','ArrowRight'];
+        if(ok.includes(e.key))return;
+        if(/^[A-Ga-g]$/.test(e.key))return;
+        e.preventDefault();
+      });
+      td.appendChild(inp);
+    } else {
+      td.className='cell-rev';
+      td.style.cssText='background:#fff9c4;';
+      const sp=document.createElement('span');
+      sp.className='nodo-rev';sp.textContent=extractOrder[s];
+      td.appendChild(sp);
+    }
+    rowNodo.appendChild(td);
+  }
+  tbody.appendChild(rowNodo);
+
+  // ── DATA ROWS ──
+  sortedNodes.forEach((node,ri)=>{
+    tableData[ri]=[];
+    const tr=document.createElement('tr');
+    const td0=document.createElement('td');
+    td0.className='td-node'+(node===SRC?' start-node':'');
+    td0.textContent=node;tr.appendChild(td0);
+    for(let s=0;s<steps;s++){
+      const snap=snapshots[s];
+      const d=snap.dist_after[node];
+      const dStr=d===Infinity?'INF':String(d);
+      tableData[ri][s]=dStr;
+      const td=document.createElement('td');
+      if(!revealMode){
+        td.className='cell-input';
+        const inp=document.createElement('input');
+        inp.type='text';inp.className='cell-inp';
+        inp.id=`ci-${ri}-${s}`;inp.placeholder='—';inp.maxLength=3;
+        if(node===SRC&&s===0){inp.value='0';inp.readOnly=true;inp.style.color='var(--primary)';inp.style.fontWeight='600';}
+        inp.addEventListener('input',function(){
+          const raw=this.value.toUpperCase();
+          const cleaned=sanitizeInput(raw);
+          if(cleaned!==raw)this.value=cleaned;
+          this.classList.remove('c-ok','c-err');
+        });
+        inp.addEventListener('keydown',function(e){
+          const allowed=['Backspace','Delete','Tab','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter'];
+          if(allowed.includes(e.key))return;
+          const upper=e.key.toUpperCase();
+          if(/[0-9]/.test(upper))return;
+          if(['I','N','F'].includes(upper))return;
+          e.preventDefault();
+        });
+        td.appendChild(inp);
+      } else {
+        td.className='cell-rev';
+        const isExt=snap.extracted===node;
+        const isLocked=SOL.extractOrder.slice(0,s).includes(node);
+        const isUpd=snap.updated.has(node);
+        if(isExt)td.classList.add('rev-min');
+        else if(isLocked)td.classList.add('rev-lock');
+        else if(isUpd)td.classList.add('rev-upd');
+        const valSpan=document.createElement('span');
+        valSpan.className='rv-val'+(d===Infinity?' rv-inf':'');
+        valSpan.textContent=d===Infinity?'∞':dStr;
+        td.appendChild(valSpan);
+      }
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);wrap.appendChild(table);
+}
+
+// ═══════════════════════════════════════════════════
+// CHECK
+// ═══════════════════════════════════════════════════
+function checkWork(){
+  if(!SOL||revealed)return;
+  const sortedNodes=[...G.nodes].sort();
+  const steps=SOL.snapshots.length;
+  let correct=0,wrong=0,total=0;
+
+  // Check nodo-attraversato row
+  for(let s=0;s<steps;s++){
+    const inp=document.getElementById(`ni-${s}`);
+    if(!inp)continue;
+    total++;
+    inp.classList.remove('ni-ok','ni-err');
+    const v=inp.value.trim().toUpperCase();
+    const exp=SOL.extractOrder[s];
+    if(v===exp){inp.classList.add('ni-ok');correct++;}
+    else if(v!==''){inp.classList.add('ni-err');wrong++;}
+  }
+
+  // Check distance cells
+  sortedNodes.forEach((node,ri)=>{
+    for(let s=0;s<steps;s++){
+      const inp=document.getElementById(`ci-${ri}-${s}`);
+      if(!inp||inp.readOnly)continue;
+      total++;
+      inp.classList.remove('c-ok','c-err');
+      const v=inp.value.trim().toUpperCase();
+      const exp=tableData[ri][s];
+      if(v===exp){inp.classList.add('c-ok');correct++;}
+      else if(v!==''){inp.classList.add('c-err');wrong++;}
+    }
+  });
+
+  document.getElementById('scVal').textContent=`${correct}/${total}`;
+  document.getElementById('scErr').textContent=wrong;
+  const allOk=correct===total&&total>0;
+  setBanner(allOk?'b-ok':'b-err',
+    allOk?'🎉 Perfetto! Tutte le celle sono corrette.'
+         :`${correct} corrette su ${total} · ${wrong} errate · ${total-correct-wrong} vuote`);
+}
+
+// ═══════════════════════════════════════════════════
+// REVEAL
+// ═══════════════════════════════════════════════════
+function revealAll(){document.getElementById('confirmScrim').classList.add('open');}
+function closeConfirm(){document.getElementById('confirmScrim').classList.remove('open');}
+function doReveal(){
+  closeConfirm(); revealed=true;
+  buildTable(true);
+  buildSVG(SOL.treeEdges);
+  buildTreeSidebar();
+  buildExtractedChips();
+  document.getElementById('playBtn').disabled=true;
+  document.getElementById('checkBtn').disabled=true;
+  setBanner('b-ok','Soluzione rivelata! Studia la tabella e l\'albero dei cammini minimi sul grafo.');
+}
+
+function buildTreeSidebar(){
+  const sortedNodes=[...G.nodes].sort();
+  const div=document.getElementById('treeList');div.innerHTML='';
+  const list=document.createElement('div');list.className='tree-list';
+  sortedNodes.forEach(n=>{
+    const d=SOL.dist[n],p=SOL.prev[n];
+    const row=document.createElement('div');row.className='tree-row';
+    const badge=document.createElement('div');
+    badge.className='tree-badge'+(n===SRC?' start':'');badge.textContent=n;
+    const info=document.createElement('div');info.className='tree-info';
+    info.textContent=n===SRC?'sorgente':p?`← ${p}`:'n/a';
+    const cost=document.createElement('div');cost.className='tree-cost';
+    cost.textContent=d===Infinity?'∞':d;
+    row.append(badge,info,cost);list.appendChild(row);
+  });
+  div.appendChild(list);
+}
+
+function buildExtractedChips(){
+  const ec=document.getElementById('extractedChips');ec.innerHTML='';
+  if(!SOL||!SOL.extractOrder.length){
+    ec.innerHTML='<span class="chips-empty">—</span>';return;
+  }
+  SOL.extractOrder.forEach(n=>{
+    const ch=document.createElement('div');ch.className='md-chip chip-done';ch.textContent=n;ec.appendChild(ch);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// SELECT + REGENERATE
+// ═══════════════════════════════════════════════════
+function populateSelect(){
+  const sel=document.getElementById('startSel');
+  const prev=sel.value;
+  sel.innerHTML='';
+  G.nodes.forEach(n=>{
+    const o=document.createElement('option');o.value=n;o.textContent=n;
+    sel.appendChild(o);
+  });
+  if(G.nodes.includes(prev)) sel.value=prev;
+  else sel.value=G.nodes[0];
+}
+
+function resetUI(){
+  revealed=false;
+  document.getElementById('treeList').innerHTML='<span style="font-size:.78rem;color:var(--on-surf-v);font-style:italic">Disponibile dopo ▶ Soluzione</span>';
+  document.getElementById('extractedChips').innerHTML='<span class="chips-empty">—</span>';
+  document.getElementById('playBtn').disabled=false;
+  document.getElementById('checkBtn').disabled=false;
+  document.getElementById('scVal').textContent='—';
+  document.getElementById('scErr').textContent='—';
+  document.getElementById('graphSub').textContent=`${G.edges.length} archi · ${G.nodes.length} nodi`;
+}
+
+// New graph (different topology)
+function regenerate(){
+  G=generateGraph();
+  initNodePos();
+  populateSelect();
+  SRC=document.getElementById('startSel').value;
+  SOL=dijkstra(G.nodes,G.edges,SRC);
+  buildSVG();
+  buildTable(false);
+  resetUI();
+  document.getElementById('graphTitle').textContent=`Grafo casuale — Partenza da ${SRC}`;
+  setBanner('b-info',`Nuovo grafo generato. Partenza da <strong>${SRC}</strong>.`);
+}
+
+// Same graph, different start node
+function changeStart(){
+  SRC=document.getElementById('startSel').value;
+  SOL=dijkstra(G.nodes,G.edges,SRC);
+  buildSVG();        // same positions, just recolor start node
+  buildTable(false);
+  resetUI();
+  document.getElementById('graphTitle').textContent=`Grafo casuale — Partenza da ${SRC}`;
+  setBanner('b-info',`Partenza cambiata a <strong>${SRC}</strong>. Stesso grafo.`);
+}
+
+document.getElementById('startSel').onchange=changeStart;
+document.getElementById('confirmScrim').addEventListener('click',e=>{
+  if(e.target===e.currentTarget)closeConfirm();
+});
+
+function setBanner(cls,msg){
+  const b=document.getElementById('banner');
+  b.className='md-banner '+cls;
+  const icons={'b-info':'info','b-ok':'check_circle','b-err':'error'};
+  b.innerHTML=`<span class="material-icons-round mi">${icons[cls]||'info'}</span><span>${msg}</span>`;
+}
+
+// Ripple on buttons
+document.querySelectorAll('.md-btn').forEach(b=>{
+  b.addEventListener('click',e=>{
+    const r=document.createElement('span');r.className='ripple';
+    const rect=b.getBoundingClientRect(),sz=Math.max(rect.width,rect.height);
+    r.style.cssText=`width:${sz}px;height:${sz}px;left:${e.clientX-rect.left-sz/2}px;top:${e.clientY-rect.top-sz/2}px`;
+    b.appendChild(r);setTimeout(()=>r.remove(),600);
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════
+G=generateGraph();
+initNodePos();
+populateSelect();
+SRC=document.getElementById('startSel').value;
+SOL=dijkstra(G.nodes,G.edges,SRC);
+buildSVG();
+buildTable(false);
+document.getElementById('graphTitle').textContent=`Grafo casuale — Partenza da ${SRC}`;
+document.getElementById('graphSub').textContent=`${G.edges.length} archi · ${G.nodes.length} nodi`;
+document.getElementById('playBtn').disabled=false;
+document.getElementById('checkBtn').disabled=false;
+setBanner('b-info',`Partenza da <strong>${SRC}</strong>. Compila la tabella, poi premi <strong>▶ Soluzione</strong>.`);
+</script>
+</body>
+</html>
