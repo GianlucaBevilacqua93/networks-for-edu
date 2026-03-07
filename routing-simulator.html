@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulatore Routing — LPM Avanzato</title>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<style>
+:root{
+  --blue:#1a73e8;--blue-dk:#1557b0;--blue-lt:#e8f0fe;
+  --green:#34a853;--green-lt:#e6f4ea;
+  --red:#ea4335;--red-lt:#fce8e6;
+  --amber:#f9ab00;--amber-lt:#fef7e0;
+  --surf:#fff;--bg:#f0f4f9;
+  --ink:#202124;--ink2:#5f6368;--out:#dadce0;
+  --sh1:0 1px 3px rgba(0,0,0,.14),0 1px 2px rgba(0,0,0,.1);
+  --sh2:0 3px 8px rgba(0,0,0,.14),0 2px 4px rgba(0,0,0,.1);
+  --sh3:0 6px 18px rgba(0,0,0,.16),0 4px 8px rgba(0,0,0,.1);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+
+.appbar{background:var(--blue);color:#fff;height:60px;padding:0 20px;display:flex;align-items:center;gap:14px;box-shadow:var(--sh2);position:sticky;top:0;z-index:200;}
+.appbar .mi{font-size:26px;}
+.appbar-title{font-family:'Google Sans',sans-serif;font-size:19px;font-weight:500;flex:1;}
+.appbar-sub{font-size:12px;opacity:.82;}
+
+.wrap{max-width:1280px;margin:0 auto;padding:20px 16px;display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+@media(max-width:820px){.wrap{grid-template-columns:1fr;}}
+.full{grid-column:1/-1;}
+
+.card{background:var(--surf);border-radius:14px;box-shadow:var(--sh1);overflow:hidden;}
+.card-hd{padding:14px 18px 11px;border-bottom:1px solid var(--out);display:flex;align-items:center;gap:10px;}
+.card-hd .mi{color:var(--blue);font-size:20px;}
+.card-ttl{font-family:'Google Sans',sans-serif;font-size:15px;font-weight:500;}
+
+.chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:500;font-family:'Google Sans',sans-serif;}
+.c-blue{background:var(--blue-lt);color:var(--blue);}
+.c-green{background:var(--green-lt);color:var(--green);}
+.c-amber{background:var(--amber-lt);color:#a36200;}
+
+.banner{background:var(--blue-lt);border-radius:12px;padding:13px 18px;display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--blue);line-height:1.5;}
+.banner .mi{font-size:18px;margin-top:1px;flex-shrink:0;}
+
+/* Routing table */
+.rtable{width:100%;border-collapse:collapse;font-size:13px;}
+.rtable th{background:#f1f3f4;padding:9px 11px;text-align:left;font-family:'Google Sans',sans-serif;font-size:10.5px;font-weight:500;color:var(--ink2);text-transform:uppercase;letter-spacing:.6px;}
+.rtable td{padding:8px 11px;border-top:1px solid var(--out);font-family:'Roboto Mono',monospace;font-size:12px;}
+.rtable tr:hover td{background:#f8f9fa;}
+.rtable tr.def-rt td{background:var(--amber-lt);}
+.rtable tr.hl-match td{background:var(--blue-lt)!important;animation:flash .6s;}
+@keyframes flash{0%{background:#c9d9fc!important;}100%{background:var(--blue-lt)!important;}}
+.pbadge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;font-family:'Google Sans',sans-serif;font-weight:700;font-size:12px;}
+.tag-direct{display:inline-flex;align-items:center;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;background:#e6f4ea;color:#137333;font-family:'Google Sans',sans-serif;}
+.tag-indirect{display:inline-flex;align-items:center;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;background:var(--blue-lt);color:var(--blue-dk);font-family:'Google Sans',sans-serif;}
+
+/* Packet table */
+.ptable{width:100%;border-collapse:collapse;font-size:13px;}
+.ptable th{background:#f1f3f4;padding:9px 11px;text-align:left;font-family:'Google Sans',sans-serif;font-size:10.5px;font-weight:500;color:var(--ink2);text-transform:uppercase;letter-spacing:.6px;}
+.ptable td{padding:7px 10px;border-top:1px solid var(--out);vertical-align:middle;}
+.ipa{font-family:'Roboto Mono',monospace;font-size:13px;font-weight:600;color:var(--blue);}
+
+/* Input */
+.fw{display:inline-flex;align-items:center;}
+.pinp{height:36px;width:52px;border:2px solid var(--out);border-radius:8px;font-family:'Roboto Mono',monospace;font-size:16px;font-weight:700;text-align:center;color:var(--ink);background:#fff;outline:none;transition:border .18s,box-shadow .18s;-moz-appearance:textfield;}
+.pinp::-webkit-outer-spin-button,.pinp::-webkit-inner-spin-button{-webkit-appearance:none;}
+.pinp:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,115,232,.18);}
+.pinp.ok{border-color:var(--green)!important;background:var(--green-lt);color:var(--green);}
+.pinp.ko{border-color:var(--red)!important;background:var(--red-lt);color:var(--red);}
+
+.vrev{display:none;height:36px;min-width:44px;align-items:center;justify-content:center;border-radius:8px;font-family:'Roboto Mono',monospace;font-weight:700;background:var(--blue);color:#fff;padding:0 10px;font-size:14px;animation:pop .35s cubic-bezier(.34,1.56,.64,1);}
+@keyframes pop{from{transform:scale(.65);opacity:0;}to{transform:scale(1);opacity:1;}}
+.revealed .pinp{display:none;}
+.revealed .vrev{display:inline-flex;}
+.mrule{font-size:10px;color:var(--ink2);font-family:'Roboto Mono',monospace;display:none;margin-top:3px;line-height:1.5;}
+.revealed .mrule{display:block;}
+.rico{display:none;font-size:19px;vertical-align:middle;}
+.rico.ok{color:var(--green);}
+.rico.ko{color:var(--red);}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:22px;border:none;font-family:'Google Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .18s;}
+.btn-play{background:var(--green);color:#fff;box-shadow:var(--sh1);padding:11px 26px;}
+.btn-play:hover{background:#2a9147;box-shadow:var(--sh3);transform:translateY(-2px);}
+.btn-new{background:#fff;color:var(--blue);border:1.5px solid var(--out);}
+.btn-new:hover{background:var(--blue-lt);}
+.actbar{grid-column:1/-1;display:flex;justify-content:center;align-items:center;gap:14px;padding:4px 0 14px;flex-wrap:wrap;}
+
+/* Score */
+.scorepanel{display:none;grid-column:1/-1;background:#fff;border-radius:14px;box-shadow:var(--sh2);padding:18px 22px;gap:22px;align-items:center;animation:sdown .3s ease;}
+@keyframes sdown{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}}
+.scorepanel.show{display:flex;flex-wrap:wrap;justify-content:center;}
+.sitem{text-align:center;}
+.snum{font-family:'Google Sans',sans-serif;font-size:38px;font-weight:700;line-height:1;}
+.slbl{font-size:12px;color:var(--ink2);margin-top:3px;}
+.snum.tot{color:var(--blue);}
+.snum.ok{color:var(--green);}
+.snum.ko{color:var(--red);}
+.sdiv{width:1px;height:44px;background:var(--out);}
+
+/* Graph */
+#graphCard{grid-column:1/-1;display:none;}
+#graphCard.show{display:block;animation:sdown .4s ease;}
+#graphCanvas{width:100%;display:block;cursor:default;}
+.graph-hint{font-size:11px;color:var(--ink2);padding:6px 16px 12px;text-align:center;font-family:'Google Sans',sans-serif;}
+
+.spin{animation:spinit .5s linear;}
+@keyframes spinit{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div class="appbar">
+  <span class="material-icons-round mi">router</span>
+  <div>
+    <div class="appbar-title">Simulatore di Routing — LPM Avanzato</div>
+    <div class="appbar-sub">Longest Prefix Match · Rotte dirette e indirette · Scenario di Rete Interattivo</div>
+  </div>
+</div>
+
+<div class="wrap" id="app">
+
+  <div class="banner full">
+    <span class="material-icons-round mi">psychology</span>
+    <span>Le rotte usano <strong>prefissi sovrapposti</strong> dello stesso blocco: applica il <strong>Longest Prefix Match</strong> scegliendo la rotta più specifica. La tabella contiene sia rotte <strong>dirette</strong> (interfaccia locale) che <strong>indirette</strong> (via next hop). Indica la porta di uscita, poi premi ▶ per la soluzione.</span>
+  </div>
+
+  <div class="card">
+    <div class="card-hd">
+      <span class="material-icons-round mi">table_chart</span>
+      <span class="card-ttl">Tabella di Routing</span>
+      <span class="chip c-blue" style="margin-left:auto;font-size:10px" id="routeCount">—</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="rtable">
+        <thead><tr><th>Destinazione</th><th>Maschera</th><th>/Pref</th><th>Tipo</th><th>Porta</th><th>Next Hop</th></tr></thead>
+        <tbody id="routingBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd">
+      <span class="material-icons-round mi">send</span>
+      <span class="card-ttl">Pacchetti da Instradare</span>
+      <span class="chip c-amber" style="margin-left:auto;font-size:10px" id="packetCount">—</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="ptable">
+        <thead><tr><th>#</th><th>IP Destinazione</th><th>Porta di uscita</th><th></th></tr></thead>
+        <tbody id="packetBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="actbar">
+    <button class="btn btn-new" onclick="newGame()">
+      <span class="material-icons-round" id="reloadIcon" style="font-size:17px">refresh</span>
+      Nuovo Esercizio
+    </button>
+    <button class="btn btn-play" onclick="reveal()">
+      <span class="material-icons-round" style="font-size:19px">play_arrow</span>
+      Mostra Soluzione
+    </button>
+  </div>
+
+  <div class="scorepanel" id="scorePanel">
+    <div class="sitem"><div class="snum tot" id="sTotal">0</div><div class="slbl">Totale</div></div>
+    <div class="sdiv"></div>
+    <div class="sitem"><div class="snum ok" id="sCorrect">0</div><div class="slbl">Corretti</div></div>
+    <div class="sdiv"></div>
+    <div class="sitem"><div class="snum ko" id="sWrong">0</div><div class="slbl">Errati</div></div>
+    <div class="sdiv"></div>
+    <div class="sitem"><div class="snum" id="sPct" style="color:var(--blue)">—</div><div class="slbl">Accuratezza</div></div>
+  </div>
+
+  <div class="card" id="graphCard">
+    <div class="card-hd">
+      <span class="material-icons-round mi">hub</span>
+      <span class="card-ttl">Scenario di Rete</span>
+      <span class="chip c-green" style="margin-left:auto;font-size:10px">Trascina i nodi</span>
+    </div>
+    <canvas id="graphCanvas" height="500"></canvas>
+    <p class="graph-hint">💡 Trascina router e nuvolette per riorganizzare il grafo. Le nuvolette mostrano la sottorete del collegamento.</p>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════
+const ri=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+function ip2int(ip){return ip.split('.').reduce((a,o)=>(a<<8)+parseInt(o),0)>>>0;}
+function int2ip(n){return[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join('.');}
+function mlen(mask){const n=ip2int(mask);let c=0;for(let i=31;i>=0;i--){if(n&(1<<i))c++;else break;}return c;}
+function plen2mask(l){return l===0?'0.0.0.0':int2ip((0xFFFFFFFF<<(32-l))>>>0);}
+function applyMask(ip,mask){return(ip2int(ip)&ip2int(mask))>>>0;}
+function lpm(ip,routes){
+  let best=null,blen=-1;
+  for(const r of routes){
+    const len=mlen(r.mask);
+    if(applyMask(ip,r.mask)===ip2int(r.dest)&&len>blen){best=r;blen=len;}
+  }
+  return best;
+}
+
+// ═══════════════════════════════════════════════════════════
+// ROUTE GENERATION — overlapping prefixes + direct/indirect
+// Subnets can start at any valid aligned address, not just x.x.x.0
+// ═══════════════════════════════════════════════════════════
+function genRoutes(){
+  const routes=[];
+  const usedPorts=new Set();
+  let linkIdx=0;
+
+  function nextPort(){let p;do{p=ri(1,8);}while(usedPorts.has(p));usedPorts.add(p);return p;}
+  function linkNet(i){return{r1:`10.${i}.0.1`,nb:`10.${i}.0.2`};}
+
+  // Base block: pick a realistic-looking range
+  const b1=ri(170,200), b2=ri(10,90);
+
+  // ── Route A: /16 — broadest, INDIRECT
+  // Subnet: b1.b2.0.0/16 (always aligned)
+  const lA=linkNet(linkIdx++);
+  routes.push({
+    dest:`${b1}.${b2}.0.0`, mask:plen2mask(16), prefixLen:16,
+    type:'indirect', port:nextPort(), nextHop:lA.nb, r1ip:lA.r1, nbip:lA.nb
+  });
+
+  // ── Route B: /24 within A — pick a non-zero third octet
+  const s24=ri(1,254);
+  const lB=linkNet(linkIdx++);
+  routes.push({
+    dest:`${b1}.${b2}.${s24}.0`, mask:plen2mask(24), prefixLen:24,
+    type:'indirect', port:nextPort(), nextHop:lB.nb, r1ip:lB.r1, nbip:lB.nb
+  });
+
+  // ── Route C: /26 within B — aligned block, non-zero start (64, 128, or 192)
+  const s26q=ri(1,3)*64;  // 64, 128, or 192 — never 0
+  const lC=linkNet(linkIdx++);
+  routes.push({
+    dest:`${b1}.${b2}.${s24}.${s26q}`, mask:plen2mask(26), prefixLen:26,
+    type:'direct', port:nextPort(), nextHop:'—',
+    r1ip:`${b1}.${b2}.${s24}.${s26q+1}`, nbip:null
+  });
+
+  // ── Route D: another /26 in same /24, different quarter — sibling, DIRECT
+  let s26d;
+  do{ s26d=ri(0,3)*64; }while(s26d===s26q);
+  routes.push({
+    dest:`${b1}.${b2}.${s24}.${s26d}`, mask:plen2mask(26), prefixLen:26,
+    type:'direct', port:nextPort(), nextHop:'—',
+    r1ip:`${b1}.${b2}.${s24}.${s26d+1}`, nbip:null
+  });
+
+  // ── Route E: sibling /24 in same /16 (different third octet), INDIRECT
+  let s24b; do{s24b=ri(1,254);}while(s24b===s24);
+  const lE=linkNet(linkIdx++);
+  routes.push({
+    dest:`${b1}.${b2}.${s24b}.0`, mask:plen2mask(24), prefixLen:24,
+    type:'indirect', port:nextPort(), nextHop:lE.nb, r1ip:lE.r1, nbip:lE.nb
+  });
+
+  // ── Route F: /28 within sibling /24 — even more specific, non-zero aligned
+  const s28q=ri(1,14)*16;  // e.g. 16, 32, 48 … 224
+  const lF=linkNet(linkIdx++);
+  routes.push({
+    dest:`${b1}.${b2}.${s24b}.${s28q}`, mask:plen2mask(28), prefixLen:28,
+    type:'indirect', port:nextPort(), nextHop:lF.nb, r1ip:lF.r1, nbip:lF.nb
+  });
+
+  // ── Route G: completely different /8, INDIRECT
+  const oth=ri(11,126);
+  const lG=linkNet(linkIdx++);
+  routes.push({
+    dest:`${oth}.0.0.0`, mask:plen2mask(8), prefixLen:8,
+    type:'indirect', port:nextPort(), nextHop:lG.nb, r1ip:lG.r1, nbip:lG.nb
+  });
+
+  // ── Default route, INDIRECT
+  const lH=linkNet(linkIdx++);
+  routes.push({
+    dest:'0.0.0.0', mask:'0.0.0.0', prefixLen:0,
+    type:'indirect', port:nextPort(), nextHop:lH.nb, r1ip:lH.r1, nbip:lH.nb
+  });
+
+  return{routes,b1,b2,s24,s24b,s26q,s26d,s28q,oth};
+}
+
+// ═══════════════════════════════════════════════════════════
+// PACKET GENERATION — stress every LPM level
+// ═══════════════════════════════════════════════════════════
+function genPackets({routes,b1,b2,s24,s24b,s26q,s26d,s28q,oth}){
+  const pkts=[];
+
+  // 1. In /26 block C (non-zero start, e.g. .64–.127) → must pick /26 C, not /24 B or /16 A
+  pkts.push(`${b1}.${b2}.${s24}.${s26q+ri(1,62)}`);
+
+  // 2. In /24 B but outside both /26 blocks → must pick /24 B
+  let ip4=ri(1,253);
+  // avoid /26 C range [s26q, s26q+63] and /26 D range [s26d, s26d+63]
+  let tries=0;
+  while(((ip4>=s26q&&ip4<s26q+64)||(ip4>=s26d&&ip4<s26d+64))&&tries<200){ip4=ri(1,253);tries++;}
+  pkts.push(`${b1}.${b2}.${s24}.${ip4}`);
+
+  // 3. In /26 D (sibling quarter, also non-zero) → must pick /26 D
+  pkts.push(`${b1}.${b2}.${s24}.${s26d+ri(1,62)}`);
+
+  // 4. In /16 A but outside /24 B and /24 E → must pick /16 A
+  let t3;
+  do{t3=ri(1,254);}while(t3===s24||t3===s24b);
+  pkts.push(`${b1}.${b2}.${t3}.${ri(1,254)}`);
+
+  // 5. In /28 F within sibling /24 E → must pick /28 F, not /24 E or /16 A
+  pkts.push(`${b1}.${b2}.${s24b}.${s28q+ri(1,14)}`);
+
+  // 6. In /24 E but outside /28 F → must pick /24 E
+  let ip6=ri(1,253);
+  let tries6=0;
+  while(ip6>=s28q&&ip6<s28q+16&&tries6<200){ip6=ri(1,253);tries6++;}
+  pkts.push(`${b1}.${b2}.${s24b}.${ip6}`);
+
+  // 7. In /8 block → must pick /8 G
+  pkts.push(`${oth}.${ri(0,254)}.${ri(0,254)}.${ri(1,254)}`);
+
+  // 8. Default (no specific match)
+  pkts.push(`${ri(11,126)}.${ri(0,254)}.${ri(0,254)}.${ri(1,254)}`);
+
+  // Keep first 3 in order (pedagogical), shuffle the rest
+  const fixed=pkts.slice(0,3), rest=pkts.slice(3);
+  for(let i=rest.length-1;i>0;i--){const j=ri(0,i);[rest[i],rest[j]]=[rest[j],rest[i]];}
+  return[...fixed,...rest];
+}
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let currentRoutes=[], currentPackets=[], isRevealed=false;
+
+// ═══════════════════════════════════════════════════════════
+// RENDER ROUTING TABLE
+// ═══════════════════════════════════════════════════════════
+function renderRouting(){
+  const body=document.getElementById('routingBody');
+  body.innerHTML='';
+  const sorted=[...currentRoutes].sort((a,b)=>b.prefixLen-a.prefixLen);
+  sorted.forEach(r=>{
+    const tr=document.createElement('tr');
+    if(r.prefixLen===0) tr.classList.add('def-rt');
+    tr.dataset.dest=r.dest; tr.dataset.mask=r.mask;
+    const typeTag=r.type==='direct'
+      ?'<span class="tag-direct">Diretta</span>'
+      :'<span class="tag-indirect">Indiretta</span>';
+    const destLabel=r.prefixLen===0
+      ?'<em style="color:#80868b">0.0.0.0</em>'
+      :r.dest;
+    const nhLabel=r.type==='direct'
+      ?'<span style="color:#80868b">—</span>'
+      :r.nextHop;
+    tr.innerHTML=`
+      <td>${destLabel}</td>
+      <td>${r.mask}</td>
+      <td><b style="color:var(--blue)">/${r.prefixLen}</b></td>
+      <td>${typeTag}</td>
+      <td><span class="pbadge">${r.port}</span></td>
+      <td style="color:var(--ink2)">${nhLabel}</td>`;
+    body.appendChild(tr);
+  });
+  document.getElementById('routeCount').textContent=currentRoutes.length+' rotte';
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER PACKETS
+// ═══════════════════════════════════════════════════════════
+function renderPackets(){
+  const body=document.getElementById('packetBody');
+  body.innerHTML='';
+  currentPackets.forEach((ip,idx)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><span class="chip c-blue">${idx+1}</span></td>
+      <td><span class="ipa">${ip}</span></td>
+      <td>
+        <div class="fw" id="pw-${idx}">
+          <input type="number" class="pinp" id="pi-${idx}" min="1" max="9" placeholder="?"
+            onkeydown="if(event.key==='Enter')focusNext(${idx})"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <div class="vrev" id="pr-${idx}">—</div>
+        </div>
+        <div class="mrule" id="rl-${idx}"></div>
+      </td>
+      <td><span class="material-icons-round rico" id="ic-${idx}"></span></td>`;
+    body.appendChild(tr);
+  });
+  document.getElementById('packetCount').textContent=currentPackets.length+' pacchetti';
+  setTimeout(()=>{const f=document.getElementById('pi-0');if(f)f.focus();},120);
+}
+
+function focusNext(idx){
+  const n=document.getElementById('pi-'+(idx+1));
+  if(n)n.focus();
+}
+
+// ═══════════════════════════════════════════════════════════
+// REVEAL
+// ═══════════════════════════════════════════════════════════
+function reveal(){
+  if(isRevealed)return;
+  isRevealed=true;
+  let correct=0,answered=0;
+
+  currentPackets.forEach((ip,idx)=>{
+    const match=lpm(ip,currentRoutes);
+    const cPort=match?match.port:'?';
+    const pi=document.getElementById('pi-'+idx);
+    const pr=document.getElementById('pr-'+idx);
+    const pw=document.getElementById('pw-'+idx);
+    const ic=document.getElementById('ic-'+idx);
+    const rl=document.getElementById('rl-'+idx);
+
+    const pv=pi.value.trim();
+    const has=pv!==''; if(has)answered++;
+
+    pr.textContent=cPort;
+    const portOk=has&&parseInt(pv)===cPort;
+    if(has){
+      pi.classList.add(portOk?'ok':'ko');
+      pr.style.background=portOk?'var(--green)':'var(--red)';
+    }
+    if(has){
+      const ok=portOk; if(ok)correct++;
+      ic.classList.add(ok?'ok':'ko');
+      ic.textContent=ok?'check_circle':'cancel';
+      ic.style.display='inline-block';
+    }
+    if(match){
+      const len=mlen(match.mask);
+      const typ=match.type==='direct'?'diretta':'indiretta';
+      rl.textContent=len===0
+        ?`default → porta ${match.port} [${typ}]`
+        :`${match.dest}/${len} → porta ${match.port} [${typ}]`;
+    }
+    pw.classList.add('revealed');
+    pi.disabled=true;
+
+    // Highlight matching row
+    document.querySelectorAll('#routingBody tr').forEach(row=>{
+      if(match&&row.dataset.dest===match.dest&&row.dataset.mask===match.mask){
+        row.classList.add('hl-match');
+        setTimeout(()=>row.classList.remove('hl-match'),1600);
+      }
+    });
+  });
+
+  const total=currentPackets.length,wrong=Math.max(0,answered-correct);
+  document.getElementById('sTotal').textContent=total;
+  document.getElementById('sCorrect').textContent=correct;
+  document.getElementById('sWrong').textContent=wrong;
+  document.getElementById('sPct').textContent=(answered>0?Math.round(correct/answered*100):0)+'%';
+  document.getElementById('scorePanel').classList.add('show');
+
+  buildGraph();
+  const gc=document.getElementById('graphCard');
+  gc.classList.add('show');
+  setTimeout(()=>gc.scrollIntoView({behavior:'smooth',block:'start'}),300);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INTERACTIVE GRAPH — Canvas drag
+// ═══════════════════════════════════════════════════════════
+let graph={nodes:[],edges:[]};
+let drag={active:false,node:null,offX:0,offY:0};
+let animFrame=null;
+
+const RCOLS=['#1a73e8','#0f9d58','#e37400','#a142f4','#d93025','#00838f','#c2185b'];
+
+function buildGraph(){
+  const canvas=document.getElementById('graphCanvas');
+  const W=canvas.offsetWidth||960;
+  canvas.width=W; canvas.height=500;
+
+  const nd=currentRoutes.filter(r=>r.prefixLen>0);
+  const defR=currentRoutes.find(r=>r.prefixLen===0);
+
+  const nodes=[], edges=[];
+  const R1x=W/2, R1y=240;
+
+  // R1
+  nodes.push({id:'R1',label:'R1',x:R1x,y:R1y,type:'router',color:'#1a73e8'});
+
+  const totalNeighbors=nd.length+(defR?1:0);
+  const angleStep=2*Math.PI/totalNeighbors;
+  const radius=Math.min(W*0.33,200);
+
+  // Non-default routes
+  nd.forEach((r,i)=>{
+    const angle=-Math.PI/2+i*angleStep;
+    const nx=R1x+radius*Math.cos(angle), ny=R1y+radius*Math.sin(angle);
+
+    // For indirect routes, add a neighbor router node
+    let neighborId;
+    if(r.type==='indirect'){
+      const rid='R'+(i+2);
+      nodes.push({id:rid,label:rid,x:nx,y:ny,type:'router',color:RCOLS[(i+1)%RCOLS.length]});
+      neighborId=rid;
+    } else {
+      // Direct: just a subnet endpoint cloud (no separate router)
+      neighborId=null;
+    }
+
+    // Cloud node at midpoint between R1 and neighbor (or just in that direction)
+    const ex=nx, ey=ny;
+    const mx=(R1x+ex)/2, my=(R1y+ey)/2;
+    const cid='cloud'+i;
+    // The cloud label is the network the link represents
+    nodes.push({
+      id:cid,
+      label:r.dest+'/'+r.prefixLen,
+      x:mx,y:my,
+      type:'cloud'
+    });
+
+    if(r.type==='indirect'){
+      edges.push({from:'R1',to:neighborId,cloudId:cid,port:r.port,direct:false});
+    } else {
+      // Direct: edge from R1 to cloud only
+      edges.push({from:'R1',to:cid,cloudId:null,port:r.port,direct:true});
+    }
+  });
+
+  // Default route
+  if(defR){
+    const angle=-Math.PI/2+nd.length*angleStep;
+    const ix=R1x+radius*Math.cos(angle), iy=R1y+radius*Math.sin(angle);
+    nodes.push({id:'internet',label:'Internet',x:ix,y:iy,type:'internet',color:'#34a853'});
+    const mx=(R1x+ix)/2, my=(R1y+iy)/2;
+    nodes.push({id:'clouddef',label:'0.0.0.0/0',x:mx,y:my,type:'cloud'});
+    edges.push({from:'R1',to:'internet',cloudId:'clouddef',port:defR.port,direct:false});
+  }
+
+  graph={nodes,edges};
+  setupDrag(canvas);
+  startRender();
+}
+
+function nodeById(id){return graph.nodes.find(n=>n.id===id);}
+
+// ── DRAW ────────────────────────────────────────────────────
+function drawGraph(){
+  const canvas=document.getElementById('graphCanvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // Background
+  ctx.fillStyle='#f8fbff';
+  ctx.fillRect(0,0,W,H);
+  // Grid
+  ctx.strokeStyle='#e8f0fe';ctx.lineWidth=1;
+  for(let x=0;x<=W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<=H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Edges
+  graph.edges.forEach(e=>{
+    const from=nodeById(e.from);
+    const to=nodeById(e.to);
+    const cloud=e.cloudId?nodeById(e.cloudId):null;
+    if(!from||!to)return;
+
+    ctx.strokeStyle='#bdc1c6';ctx.lineWidth=2.5;ctx.setLineDash([]);
+    if(cloud&&!e.direct){
+      // R1 ─── cloud ─── Rn
+      ctx.beginPath();ctx.moveTo(from.x,from.y);ctx.lineTo(cloud.x,cloud.y);ctx.lineTo(to.x,to.y);ctx.stroke();
+    } else if(e.direct){
+      // R1 ─── cloud (terminal)
+      ctx.beginPath();ctx.moveTo(from.x,from.y);ctx.lineTo(to.x,to.y);ctx.stroke();
+    } else {
+      ctx.beginPath();ctx.moveTo(from.x,from.y);ctx.lineTo(to.x,to.y);ctx.stroke();
+    }
+
+    // Port badge near R1 (20% from R1 toward cloud or endpoint)
+    const tgt=cloud&&!e.direct?cloud:to;
+    const px=from.x+(tgt.x-from.x)*0.22;
+    const py=from.y+(tgt.y-from.y)*0.22;
+    ctx.fillStyle='#1a73e8';
+    ctx.beginPath();ctx.arc(px,py,12,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='white';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(px,py,12,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='#fff';ctx.font='bold 11px Google Sans,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(String(e.port),px,py);
+  });
+
+  // Nodes (clouds first, then routers on top)
+  const clouds=graph.nodes.filter(n=>n.type==='cloud');
+  const routers=graph.nodes.filter(n=>n.type!=='cloud');
+  clouds.forEach(n=>drawCloud(ctx,n));
+  routers.forEach(n=>n.type==='internet'?drawInternet(ctx,n):drawRouter(ctx,n));
+}
+
+// White cloud: outer border only, no internal blob strokes
+function drawCloud(ctx,n){
+  const blobs=[
+    [0,0,36,18],
+    [22,-10,24,15],[-22,-10,22,14],
+    [32,4,18,13],[-32,4,17,12],
+    [0,10,38,13]
+  ];
+  // Step 1: shadow + fill all blobs white (no stroke yet)
+  ctx.shadowColor='rgba(0,0,0,0.15)';ctx.shadowBlur=8;ctx.shadowOffsetY=3;
+  ctx.fillStyle='#ffffff';
+  blobs.forEach(([dx,dy,rx,ry])=>{
+    ctx.beginPath();ctx.ellipse(n.x+dx,n.y+dy,rx,ry,0,0,Math.PI*2);ctx.fill();
+  });
+  ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+
+  // Step 2: stroke each blob individually
+  ctx.strokeStyle='#5f6368';ctx.lineWidth=1.8;
+  blobs.forEach(([dx,dy,rx,ry])=>{
+    ctx.beginPath();ctx.ellipse(n.x+dx,n.y+dy,rx,ry,0,0,Math.PI*2);ctx.stroke();
+  });
+
+  // Step 3: overdraw white fill on all blobs — this erases interior strokes,
+  // leaving only the outermost contour visible
+  ctx.fillStyle='#ffffff';
+  blobs.forEach(([dx,dy,rx,ry])=>{
+    ctx.beginPath();ctx.ellipse(n.x+dx,n.y+dy,rx,ry,0,0,Math.PI*2);ctx.fill();
+  });
+
+  // Step 4: text on top
+  ctx.fillStyle='#202124';
+  ctx.font='bold 11px Roboto Mono,monospace';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(n.label,n.x,n.y+1);
+}
+
+function drawRouter(ctx,n){
+  ctx.shadowColor='rgba(0,0,0,0.2)';ctx.shadowBlur=9;ctx.shadowOffsetY=3;
+  ctx.fillStyle=n.color||'#1a73e8';
+  ctx.beginPath();ctx.arc(n.x,n.y,25,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+  ctx.strokeStyle='rgba(0,0,0,.18)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(n.x,n.y,25,0,Math.PI*2);ctx.stroke();
+
+  // Cross icon
+  ctx.strokeStyle='rgba(255,255,255,.95)';ctx.lineWidth=2.2;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(n.x-13,n.y);ctx.lineTo(n.x+13,n.y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(n.x,n.y-13);ctx.lineTo(n.x,n.y+13);ctx.stroke();
+  [[-9,-9],[9,-9],[9,9],[-9,9]].forEach(([dx,dy])=>{
+    ctx.fillStyle='white';ctx.beginPath();ctx.arc(n.x+dx,n.y+dy,3.2,0,Math.PI*2);ctx.fill();
+  });
+  ctx.fillStyle='white';ctx.beginPath();ctx.arc(n.x,n.y,5.5,0,Math.PI*2);ctx.fill();
+
+  ctx.fillStyle='#202124';ctx.font='bold 13px Google Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.fillText(n.label,n.x,n.y+30);
+}
+
+function drawInternet(ctx,n){
+  const blobs=[[0,0,44,22],[32,-9,28,17],[-30,-9,26,16],[40,6,22,15],[-38,6,21,14],[0,12,44,14]];
+  ctx.shadowColor='rgba(0,0,0,0.15)';ctx.shadowBlur=8;ctx.shadowOffsetY=3;
+  ctx.fillStyle='#ffffff';
+  blobs.forEach(([dx,dy,rx,ry])=>{ctx.beginPath();ctx.ellipse(n.x+dx,n.y+dy,rx,ry,0,0,Math.PI*2);ctx.fill();});
+  ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+  ctx.strokeStyle='#5f6368';ctx.lineWidth=1.8;
+  blobs.forEach(([dx,dy,rx,ry])=>{ctx.beginPath();ctx.ellipse(n.x+dx,n.y+dy,rx,ry,0,0,Math.PI*2);ctx.stroke();});
+  ctx.fillStyle='#ffffff';
+  blobs.forEach(([dx,dy,rx,ry])=>{ctx.beginPath();ctx.ellipse(n.x+dx,n.y+dy,rx,ry,0,0,Math.PI*2);ctx.fill();});
+  ctx.fillStyle='#202124';ctx.font='bold 13px Google Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('Internet',n.x,n.y-4);
+  ctx.fillStyle='#5f6368';ctx.font='10px Roboto Mono,monospace';
+  ctx.fillText('0.0.0.0/0',n.x,n.y+11);
+}
+
+function startRender(){
+  if(animFrame)cancelAnimationFrame(animFrame);
+  (function loop(){drawGraph();animFrame=requestAnimationFrame(loop);})();
+}
+
+// ── DRAG ────────────────────────────────────────────────────
+function setupDrag(canvas){
+  canvas.onmousedown=e=>dragStart(e,canvas);
+  canvas.onmousemove=e=>dragMove(e,canvas);
+  canvas.onmouseup=dragEnd;
+  canvas.onmouseleave=dragEnd;
+  canvas.ontouchstart=e=>{e.preventDefault();dragStart(e.touches[0],canvas);};
+  canvas.ontouchmove=e=>{e.preventDefault();dragMove(e.touches[0],canvas);};
+  canvas.ontouchend=dragEnd;
+}
+function cXY(e,canvas){
+  const r=canvas.getBoundingClientRect();
+  return{x:(e.clientX-r.left)*(canvas.width/r.width),y:(e.clientY-r.top)*(canvas.height/r.height)};
+}
+function hitNode(x,y){
+  for(let i=graph.nodes.length-1;i>=0;i--){
+    const n=graph.nodes[i];
+    const dx=x-n.x,dy=y-n.y;
+    const hr=n.type==='cloud'?42:n.type==='internet'?50:28;
+    if(dx*dx+dy*dy<hr*hr)return n;
+  }
+  return null;
+}
+function dragStart(e,canvas){
+  const{x,y}=cXY(e,canvas);
+  const n=hitNode(x,y);
+  if(n){drag={active:true,node:n,offX:x-n.x,offY:y-n.y};canvas.style.cursor='grabbing';}
+}
+function dragMove(e,canvas){
+  if(!drag.active)return;
+  const{x,y}=cXY(e,canvas);
+  drag.node.x=x-drag.offX;
+  drag.node.y=y-drag.offY;
+}
+function dragEnd(){
+  drag.active=false;
+  const c=document.getElementById('graphCanvas');
+  if(c)c.style.cursor='default';
+}
+
+// ═══════════════════════════════════════════════════════════
+// NEW GAME
+// ═══════════════════════════════════════════════════════════
+function newGame(){
+  isRevealed=false;
+  if(animFrame){cancelAnimationFrame(animFrame);animFrame=null;}
+  document.getElementById('scorePanel').classList.remove('show');
+  document.getElementById('graphCard').classList.remove('show');
+  const ic=document.getElementById('reloadIcon');
+  ic.classList.add('spin');
+  setTimeout(()=>ic.classList.remove('spin'),500);
+  const{routes,...params}=genRoutes();
+  currentRoutes=routes;
+  currentPackets=genPackets({routes,...params});
+  renderRouting();
+  renderPackets();
+}
+
+newGame();
+</script>
+</body>
+</html>
