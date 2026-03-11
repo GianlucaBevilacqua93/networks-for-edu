@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Dijkstra — Lavagna Interattiva</title>
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Display:wght@400;700&family=Roboto:wght@400;500&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
@@ -23,6 +23,61 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Roboto',sans-serif;background:var(--surf-low);color:var(--on-surf);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;}
+
+/* ── SMALL SCREEN OVERLAY ── */
+#mobile-wall{
+  display:none;
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(150deg,#1565c0 0%,#1a73e8 55%,#0d47a1 100%);
+  flex-direction:column;align-items:center;justify-content:center;
+  padding:36px 28px;text-align:center;color:#fff;
+  -webkit-font-smoothing:antialiased;
+}
+#mobile-wall .mw-icon{
+  width:80px;height:80px;border-radius:20px;
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 22px;
+}
+#mobile-wall .mw-icon .material-icons-round{font-size:42px;color:#fff;}
+#mobile-wall h1{
+  font-family:'Google Sans Display',sans-serif;font-size:1.5rem;
+  font-weight:700;line-height:1.3;margin-bottom:12px;
+}
+#mobile-wall .mw-sub{
+  font-size:.93rem;line-height:1.72;opacity:.87;max-width:320px;
+  font-family:'Roboto',sans-serif;margin:0 auto;
+}
+#mobile-wall .mw-card{
+  margin-top:24px;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:14px;padding:16px 20px;
+  max-width:320px;width:100%;
+  font-size:.8rem;line-height:1.75;
+  font-family:'Roboto',sans-serif;
+  text-align:left;
+}
+#mobile-wall .mw-card .mw-row{
+  display:flex;align-items:flex-start;gap:10px;padding:4px 0;
+}
+#mobile-wall .mw-card .mw-row .material-icons-round{
+  font-size:17px;margin-top:1px;flex-shrink:0;opacity:.85;
+}
+#mobile-wall .mw-note{
+  margin-top:20px;font-size:.72rem;opacity:.6;
+  font-family:'Roboto',sans-serif;max-width:280px;
+  font-style:italic;line-height:1.55;
+}
+
+@media(max-width:899px){
+  #mobile-wall{display:flex;}
+  .top-bar,.app-body,.app-footer{
+    pointer-events:none;user-select:none;
+    filter:blur(6px);
+    visibility:hidden;
+  }
+}
 
 /* TOP BAR */
 .top-bar{background:var(--surf);border-bottom:1px solid var(--out);height:60px;display:flex;align-items:center;padding:0 14px;gap:8px;position:sticky;top:0;z-index:200;box-shadow:var(--sh1);flex-shrink:0;}
@@ -169,6 +224,36 @@ table.iter-tbl{border-collapse:collapse;font-family:'Roboto Mono',monospace;font
 </style>
 </head>
 <body>
+
+<!-- ── SMALL SCREEN WALL ── -->
+<div id="mobile-wall" aria-modal="true" role="alertdialog" aria-labelledby="mw-title">
+  <div class="mw-icon">
+    <span class="material-icons-round">desktop_windows</span>
+  </div>
+  <h1 id="mw-title">Schermo troppo piccolo</h1>
+  <p class="mw-sub">
+    Questo simulatore è progettato per essere usato su un <strong>computer o lavagna interattiva</strong>.
+    Su dispositivi mobili o schermi piccoli l'esperienza non è utilizzabile.
+  </p>
+  <div class="mw-card">
+    <div class="mw-row">
+      <span class="material-icons-round">laptop</span>
+      <span>Usa un <strong>PC, Mac o laptop</strong> per accedere al simulatore</span>
+    </div>
+    <div class="mw-row">
+      <span class="material-icons-round">tv</span>
+      <span>In classe, apri il link sulla <strong>lavagna interattiva</strong> (LIM)</span>
+    </div>
+    <div class="mw-row">
+      <span class="material-icons-round">screenshot_monitor</span>
+      <span>Dimensione minima consigliata: <strong>900 px di larghezza</strong></span>
+    </div>
+  </div>
+  <p class="mw-note">
+    La modalità "Richiedi sito desktop" del browser mobile non è sufficiente
+    per garantire il corretto funzionamento del simulatore.
+  </p>
+</div>
 
 <div class="top-bar">
   <div class="bar-logo">D</div>
