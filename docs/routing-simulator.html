@@ -143,14 +143,43 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--ink);min-h
 #graphCanvas{width:100%;display:block;cursor:default;}
 .graph-hint{font-size:11px;color:var(--ink2);padding:6px 16px 12px;text-align:center;font-family:'Google Sans',sans-serif;}
 
-/* ── FOOTER ── */
-.site-footer{background:var(--surf);border-top:1px solid var(--out);padding:18px 20px;text-align:center;font-size:12px;color:#80868b;line-height:1.7;}
+/* ── MOBILE WARNING ── */
+#mobileWarn{
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#1557b0 0%,#1a73e8 100%);
+  color:#fff;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:32px 28px;
+}
+#mobileWarn .mw-icon{font-size:64px;margin-bottom:20px;opacity:.9;}
+#mobileWarn h2{font-family:'Google Sans',sans-serif;font-size:22px;font-weight:700;margin-bottom:14px;line-height:1.3;}
+#mobileWarn p{font-size:14px;line-height:1.7;opacity:.88;max-width:320px;}
+#mobileWarn .mw-tip{
+  margin-top:28px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+  border-radius:12px;padding:14px 18px;font-size:13px;line-height:1.65;max-width:320px;
+}
+#mobileWarn .mw-tip strong{display:block;margin-bottom:4px;font-family:'Google Sans',sans-serif;}
+@media(max-width:700px){#mobileWarn{display:flex;}}
 
 .spin{animation:spinit .5s linear;}
 @keyframes spinit{to{transform:rotate(360deg);}}
+
+/* ── FOOTER ── */
+.site-footer{background:var(--surf);border-top:1px solid var(--out);padding:18px 20px;text-align:center;font-size:12px;color:#80868b;line-height:1.7;}
 </style>
 </head>
 <body>
+
+<!-- MOBILE WARNING OVERLAY -->
+<div id="mobileWarn">
+  <span class="material-icons-round mw-icon">desktop_windows</span>
+  <h2>Schermo troppo piccolo</h2>
+  <p>Il Simulatore di Routing Statico è progettato per essere usato su uno <strong>schermo grande</strong>, come un computer, un tablet in orizzontale o una lavagna interattiva (LIM).</p>
+  <div class="mw-tip">
+    <strong>💡 Cosa fare?</strong>
+    Apri questa pagina su un computer o un tablet tenuto in orizzontale.<br>
+    Se sei a scuola, chiedi al docente di proiettarla sulla LIM.
+  </div>
+</div>
 
 <!-- APP BAR -->
 <div class="appbar">
