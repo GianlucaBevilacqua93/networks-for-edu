@@ -146,7 +146,7 @@ textarea.iarea{width:100%;min-height:100px;height:100px;font-family:var(--mono);
          min-height:120px}
 .fp-body img{max-width:100%;max-height:220px;object-fit:contain;
              border-radius:0 0 var(--rs) var(--rs);display:block;margin:auto;padding:14px}
-.fp-body iframe.pdf-frame{width:100%;height:280px;border:none;display:block}
+.fp-body iframe.pdf-frame{width:100%;border:none;display:block}
 .fp-meta{padding:12px 16px;text-align:center}
 .fp-name{font-family:var(--mono);font-size:12px;color:var(--blue);word-break:break-all}
 .fp-size{font-size:11px;color:var(--on2);margin-top:4px}
@@ -242,18 +242,103 @@ tbody tr:last-child td{border-bottom:none}
 .fu2{animation:fadeUp .3s .08s ease both}
 
 /* ── RESPONSIVE ── */
+
+/* Tablet */
+@media(max-width:900px){
+  .hval{font-size:clamp(8px,1vw,11px)}
+  .tdi{padding:8px 10px}
+  thead th{padding:8px 10px;font-size:10px}
+}
+
+/* Large screens */
+@media(min-width:1400px){
+  .wrap{max-width:1400px}
+  .hval{font-size:clamp(9px,0.75vw,13px)}
+}
+@media(min-width:1800px){
+  .wrap{max-width:1700px}
+  .hval{font-size:clamp(8px,0.6vw,12px)}
+  .fp-body iframe.pdf-frame{height:clamp(300px,30vh,600px)}
+}
+@media(min-width:2200px){
+  .wrap{max-width:min(90vw,2000px)}
+  .hval{font-size:clamp(7px,0.5vw,11px)}
+  .fp-body iframe.pdf-frame{height:clamp(350px,35vh,700px)}
+  .fp-body img{max-height:clamp(220px,25vh,500px)}
+}
+
+/* Prevent hash table overflow at any size */
+.tbl-wrap{overflow-x:auto}
+table{table-layout:fixed;min-width:600px}
+table th:nth-child(1){width:140px}
+table th:nth-child(4){width:110px}
+.hval{overflow-wrap:break-word;word-break:break-all}
+
+/* PDF iframe fluid height */
+.fp-body iframe.pdf-frame{height:clamp(260px,28vh,520px)}
+
+/* Mobile */
 @media(max-width:700px){
+  #mobile-block{display:flex !important}
+  body{overflow:hidden}
   .two-col{grid-template-columns:1fr}
   .wrap{padding:12px 12px 60px}
   .ab-pill{display:none}
   .seg{flex-wrap:wrap}
   .collision-strip{flex-direction:column;align-items:flex-start}
 }
+
+/* Mobile block overlay */
+#mobile-block{
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#0d47a1 0%,#1a73e8 100%);
+  flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 24px;text-align:center;gap:24px;
+}
+#mobile-block .mb-icon{
+  width:80px;height:80px;border-radius:20px;
+  background:rgba(255,255,255,0.15);
+  display:flex;align-items:center;justify-content:center;
+}
+#mobile-block .mb-icon .mi{font-size:44px;color:#fff}
+#mobile-block h1{
+  font-family:'Google Sans',sans-serif;font-size:24px;font-weight:700;
+  color:#fff;margin:0;line-height:1.3;
+}
+#mobile-block p{
+  font-family:'Roboto',sans-serif;font-size:15px;color:rgba(255,255,255,0.85);
+  line-height:1.6;margin:0;max-width:320px;
+}
+#mobile-block .mb-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);
+  border-radius:12px;padding:10px 20px;
+  font-family:'Google Sans',sans-serif;font-size:13px;
+  font-weight:500;color:#fff;
+}
+#mobile-block .mb-badge .mi{font-size:18px}
+
 .mi{font-family:'Material Icons Round';font-style:normal;
     display:inline-flex;vertical-align:middle;line-height:1;user-select:none}
 </style>
 </head>
 <body>
+
+<!-- MOBILE BLOCK OVERLAY -->
+<div id="mobile-block">
+  <div class="mb-icon"><span class="mi">desktop_windows</span></div>
+  <h1>Schermo troppo piccolo</h1>
+  <p>
+    HashCompare è un simulatore didattico progettato per schermi grandi.<br><br>
+    Per visualizzare correttamente le tabelle hash e le anteprime dei file
+    è necessario uno <strong style="color:#fff">schermo da almeno 768px</strong>
+    — un computer, un laptop o una LIM.
+  </p>
+  <div class="mb-badge">
+    <span class="mi">info</span>
+    Richiesta modalità desktop non supportata
+  </div>
+</div>
 
 <!-- APP BAR -->
 <header class="ab">
