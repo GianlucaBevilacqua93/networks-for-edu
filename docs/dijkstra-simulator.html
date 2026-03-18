@@ -126,6 +126,20 @@ svg#graph{display:block;width:100%;height:320px;cursor:default;}
 .drag-hint{position:absolute;bottom:6px;right:8px;font-size:.68rem;color:var(--on-surf-v);font-family:'Roboto',sans-serif;display:flex;align-items:center;gap:3px;pointer-events:none;}
 .drag-hint .mi{font-size:13px;}
 
+/* edge click target (invisible wide band) */
+.edge-hit{stroke:transparent;stroke-width:18;fill:none;cursor:pointer;}
+.edge-hit:hover~.edge-vis,
+.edge-grp:hover .edge-vis{stroke-width:4;}
+
+/* edge visual states */
+.edge-vis{fill:none;stroke-linecap:round;transition:stroke .18s,stroke-width .18s,stroke-dasharray .18s;}
+.edge-vis.ev-default{stroke:#dadce0;stroke-width:2;}
+.edge-vis.ev-student{stroke:#188038;stroke-width:3.5;stroke-dasharray:7,3;}
+.edge-vis.ev-correct{stroke:#188038;stroke-width:3.5;stroke-dasharray:7,3;}
+.edge-vis.ev-wrong{stroke:#c5221f;stroke-width:3.5;stroke-dasharray:none;}
+.edge-vis.ev-tree{stroke:#1a73e8;stroke-width:3.5;stroke-dasharray:7,3;}
+.edge-vis.ev-missing{stroke:#e37400;stroke-width:3;stroke-dasharray:4,4;}
+
 /* BANNER */
 .md-banner{display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:var(--r-sm);font-size:.8rem;font-family:'Roboto',sans-serif;line-height:1.5;transition:all .2s;margin-top:10px;}
 .md-banner .mi{font-size:17px;flex-shrink:0;}
@@ -200,10 +214,18 @@ table.iter-tbl{border-collapse:collapse;font-family:'Roboto Mono',monospace;font
 .tree-info{flex:1;font-family:'Roboto Mono',monospace;font-size:.74rem;color:var(--on-surf);}
 .tree-cost{font-family:'Google Sans',sans-serif;font-weight:700;font-size:.82rem;color:var(--primary);}
 
-.score-bar{display:flex;gap:7px;padding:11px 13px;background:var(--surf-low);border-top:1px solid var(--out);margin-top:auto;}
-.sc-chip{flex:1;background:var(--surf);border:1px solid var(--out);border-radius:var(--r-md);padding:8px;text-align:center;}
-.sc-lbl{font-size:.58rem;font-family:'Google Sans',sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--on-surf-v);margin-bottom:2px;}
-.sc-val{font-size:1.15rem;font-weight:700;font-family:'Google Sans Display',sans-serif;}
+.score-panel{padding:11px 13px;background:var(--surf-low);border-top:1px solid var(--out);margin-top:auto;}
+.score-panel-title{font-family:'Google Sans',sans-serif;font-size:.62rem;font-weight:500;text-transform:uppercase;letter-spacing:.09em;color:var(--on-surf-v);margin-bottom:8px;display:flex;align-items:center;gap:4px;}
+.score-grid{display:grid;grid-template-columns:1fr auto auto;gap:0;border:1px solid var(--out);border-radius:var(--r-sm);overflow:hidden;background:var(--surf);}
+.sg-hdr{background:var(--surf-hi);font-family:'Google Sans',sans-serif;font-size:.6rem;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--on-surf-v);padding:5px 8px;text-align:center;}
+.sg-hdr:first-child{text-align:left;}
+.sg-row{display:contents;}
+.sg-row>div{padding:5px 8px;border-top:1px solid var(--out-v);font-family:'Roboto',sans-serif;font-size:.75rem;color:var(--on-surf);}
+.sg-row>div:nth-child(2),.sg-row>div:nth-child(3){text-align:center;font-family:'Roboto Mono',monospace;font-weight:600;}
+.sg-label{display:flex;align-items:center;gap:5px;}
+.sg-ok{color:var(--secondary);}
+.sg-err{color:var(--error);}
+.sg-total{background:var(--surf-c);font-weight:600;}
 
 /* DIALOG */
 .md-scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:300;align-items:center;justify-content:center;}
@@ -293,6 +315,8 @@ table.iter-tbl{border-collapse:collapse;font-family:'Roboto Mono',monospace;font
         <div class="graph-wrap" id="graphWrap">
           <svg id="graph" viewBox="0 0 580 320"></svg>
           <div class="drag-hint">
+            <span class="material-icons-round mi">touch_app</span>
+            Clic su un arco per aggiungerlo/rimuoverlo dall'albero &nbsp;·&nbsp;
             <span class="material-icons-round mi">open_with</span>
             Trascina i nodi per riposizionarli
           </div>
@@ -318,6 +342,11 @@ table.iter-tbl{border-collapse:collapse;font-family:'Roboto Mono',monospace;font
           <div class="leg-item"><div class="leg-sq" style="background:var(--tertiary-c)"></div>Distanza aggiornata</div>
           <div class="leg-item"><div class="leg-sq" style="background:var(--secondary-c)"></div>Nodo definitivo</div>
           <div class="leg-sep"></div>
+          <div class="leg-item">
+            <svg width="22" height="10"><line x1="0" y1="5" x2="22" y2="5" stroke="#188038" stroke-width="2.5" stroke-dasharray="5,3"/></svg>
+            Arco albero (tuo)
+          </div>
+          <div class="leg-sep"></div>
           <div class="leg-item" style="color:var(--on-surf);font-weight:500;">
             <span class="material-icons-round mi" style="font-size:14px;color:var(--primary)">keyboard</span>
             Scrivi <code style="background:var(--surf-hi);padding:1px 5px;border-radius:3px;font-family:'Roboto Mono',monospace;font-size:.7rem;">INF</code> per ∞ — altre parole non accettate
@@ -333,11 +362,12 @@ table.iter-tbl{border-collapse:collapse;font-family:'Roboto Mono',monospace;font
       <div class="sb-title"><span class="material-icons-round mi">help_outline</span>Come funziona</div>
       <div class="how-to">
         <b>1.</b> Osserva il grafo (trascina i nodi)<br>
-        <b>2.</b> Per ogni cella scrivi il costo F(v)<br>
+        <b>2.</b> <strong>Clic sugli archi</strong> per costruire l'albero<br>
+        <b>3.</b> Per ogni cella scrivi il costo F(v)<br>
         &nbsp;&nbsp;&nbsp;usa <code>INF</code> per infinito<br>
-        <b>3.</b> <em>Verifica</em> per un feedback immediato<br>
-        <b>4.</b> <em>▶ Soluzione</em> rivela tutto<br>
-        <b>5.</b> <em>Nuovo grafo</em> per un esercizio diverso
+        <b>4.</b> <em>Verifica</em> per un feedback immediato<br>
+        <b>5.</b> <em>▶ Soluzione</em> rivela tutto<br>
+        <b>6.</b> <em>Nuovo grafo</em> per un nuovo esercizio
       </div>
     </div>
 
@@ -348,21 +378,44 @@ table.iter-tbl{border-collapse:collapse;font-family:'Roboto Mono',monospace;font
       </div>
     </div>
 
-    <div class="sb-sec" style="flex:1;">
+    <div class="sb-sec">
       <div class="sb-title"><span class="material-icons-round mi">account_tree</span>Albero cammini minimi</div>
       <div id="treeList" style="font-size:.78rem;color:var(--on-surf-v);font-style:italic;">
         Disponibile dopo ▶ Soluzione
       </div>
+      <div id="studentTreeInfo" style="margin-top:8px;font-size:.75rem;color:var(--on-surf-v);line-height:1.6;">
+        <span style="display:inline-flex;align-items:center;gap:4px;">
+          <svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" stroke="#188038" stroke-width="2" stroke-dasharray="4,2"/></svg>
+          Archi selezionati: <strong id="studentEdgeCount">0</strong>
+        </span>
+      </div>
     </div>
 
-    <div class="score-bar">
-      <div class="sc-chip">
-        <div class="sc-lbl">Corrette</div>
-        <div class="sc-val" id="scVal">—</div>
-      </div>
-      <div class="sc-chip">
-        <div class="sc-lbl">Errori</div>
-        <div class="sc-val" id="scErr">—</div>
+    <div class="score-panel" id="scorePanel">
+      <div class="score-panel-title"><span class="material-icons-round mi">analytics</span>Risultati verifica</div>
+      <div class="score-grid">
+        <!-- header -->
+        <div class="sg-hdr">Categoria</div>
+        <div class="sg-hdr sg-ok">✓</div>
+        <div class="sg-hdr sg-err">✗</div>
+        <!-- tabella iterazioni -->
+        <div class="sg-row">
+          <div class="sg-label"><span class="material-icons-round mi" style="font-size:14px;color:var(--on-surf-v)">table_rows</span>Tabella</div>
+          <div class="sg-ok" id="sc-tbl-ok">—</div>
+          <div class="sg-err" id="sc-tbl-err">—</div>
+        </div>
+        <!-- archi albero -->
+        <div class="sg-row">
+          <div class="sg-label"><span class="material-icons-round mi" style="font-size:14px;color:var(--on-surf-v)">account_tree</span>Archi</div>
+          <div class="sg-ok" id="sc-arc-ok">—</div>
+          <div class="sg-err" id="sc-arc-err">—</div>
+        </div>
+        <!-- totale -->
+        <div class="sg-row">
+          <div class="sg-label sg-total">Totale</div>
+          <div class="sg-ok sg-total" id="sc-tot-ok">—</div>
+          <div class="sg-err sg-total" id="sc-tot-err">—</div>
+        </div>
       </div>
     </div>
   </div>
@@ -477,6 +530,7 @@ function dijkstra(nodes,edges,src){
 let G={nodes:[],edges:[]};
 let nodePos={};   // draggable positions, keyed by node id
 let SRC='A', SOL=null, revealed=false;
+let studentTree=new Set(); // edge keys selected by student
 
 // ═══════════════════════════════════════════════════
 // SVG — DRAGGABLE NODES
@@ -489,7 +543,7 @@ function initNodePos(){
   G.nodes.forEach(n=>nodePos[n]={x:BASE_POS[n].x,y:BASE_POS[n].y});
 }
 
-function buildSVG(treeEdges=null){
+function buildSVG(revealTreeEdges=null){
   svg.innerHTML='';
   const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
   defs.innerHTML=`<filter id="sh1"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="rgba(0,0,0,.13)"/></filter>
@@ -501,40 +555,62 @@ function buildSVG(treeEdges=null){
   const nodeG=document.createElementNS('http://www.w3.org/2000/svg','g');
   nodeG.id='nodeLayer'; svg.appendChild(nodeG);
 
-  // Edges
+  // ── EDGES ──
   G.edges.forEach(({u,v,w})=>{
     const key=[u,v].sort().join('-');
-    const isTree=treeEdges&&treeEdges.has(key);
-    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.dataset.edge=key;
-
-    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
     const p1=nodePos[u],p2=nodePos[v];
-    line.setAttribute('x1',p1.x);line.setAttribute('y1',p1.y);
-    line.setAttribute('x2',p2.x);line.setAttribute('y2',p2.y);
-    line.setAttribute('stroke',isTree?'#1a73e8':'#dadce0');
-    line.setAttribute('stroke-width',isTree?'3.2':'2');
-    if(isTree)line.setAttribute('stroke-dasharray','7,3');
-    line.setAttribute('stroke-linecap','round');
-    g.appendChild(line);
+
+    const grp=document.createElementNS('http://www.w3.org/2000/svg','g');
+    grp.dataset.edge=key;
+    grp.classList.add('edge-grp');
+
+    // Visible line
+    const vis=document.createElementNS('http://www.w3.org/2000/svg','line');
+    vis.classList.add('edge-vis');
+    vis.setAttribute('x1',p1.x);vis.setAttribute('y1',p1.y);
+    vis.setAttribute('x2',p2.x);vis.setAttribute('y2',p2.y);
+    grp.appendChild(vis);
+
+    // Invisible wide hit zone
+    const hit=document.createElementNS('http://www.w3.org/2000/svg','line');
+    hit.classList.add('edge-hit');
+    hit.setAttribute('x1',p1.x);hit.setAttribute('y1',p1.y);
+    hit.setAttribute('x2',p2.x);hit.setAttribute('y2',p2.y);
+    grp.appendChild(hit);
 
     // Weight pill
     const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
     const wr=document.createElementNS('http://www.w3.org/2000/svg','rect');
     wr.setAttribute('x',mx-11);wr.setAttribute('y',my-10);wr.setAttribute('width',22);wr.setAttribute('height',20);
     wr.setAttribute('rx',10);wr.setAttribute('fill','#fff');wr.setAttribute('filter','url(#sh1)');
-    g.appendChild(wr);
+    grp.appendChild(wr);
     const wt=document.createElementNS('http://www.w3.org/2000/svg','text');
     wt.setAttribute('x',mx);wt.setAttribute('y',my+1);
     wt.setAttribute('font-family','Roboto Mono,monospace');wt.setAttribute('font-size','11');
-    wt.setAttribute('fill',isTree?'#1a73e8':'#5f6368');
     wt.setAttribute('text-anchor','middle');wt.setAttribute('dominant-baseline','central');
     wt.textContent=w;
-    g.appendChild(wt);
-    edgeG.appendChild(g);
+    grp.appendChild(wt);
+
+    // Apply visual state
+    applyEdgeStyle(grp, key, revealTreeEdges);
+
+    // Click to toggle (only when not revealed)
+    if(!revealTreeEdges){
+      hit.style.cursor='pointer';
+      hit.addEventListener('click', e=>{
+        e.stopPropagation();
+        if(revealed) return;
+        if(studentTree.has(key)) studentTree.delete(key);
+        else studentTree.add(key);
+        applyEdgeStyle(grp, key, null);
+        updateStudentEdgeCount();
+      });
+    }
+
+    edgeG.appendChild(grp);
   });
 
-  // Nodes
+  // ── NODES ──
   G.nodes.forEach(id=>{
     const {x,y}=nodePos[id];
     const g=document.createElementNS('http://www.w3.org/2000/svg','g');
@@ -560,13 +636,12 @@ function buildSVG(treeEdges=null){
     g.appendChild(lbl);
 
     // Cost label when revealed
-    if(treeEdges&&SOL){
+    if(revealTreeEdges&&SOL){
       const d=SOL.dist[id];
       const dl=document.createElementNS('http://www.w3.org/2000/svg','text');
       dl.setAttribute('x',x);dl.setAttribute('y',y+38);
       dl.setAttribute('font-family','Google Sans,sans-serif');
-      dl.setAttribute('font-size','13');
-      dl.setAttribute('font-weight','700');
+      dl.setAttribute('font-size','13');dl.setAttribute('font-weight','700');
       dl.setAttribute('text-anchor','middle');dl.setAttribute('dominant-baseline','central');
       dl.setAttribute('fill','#1a73e8');
       dl.textContent=d===Infinity?'∞':d;
@@ -576,7 +651,6 @@ function buildSVG(treeEdges=null){
     // Drag events
     g.addEventListener('mousedown',startDrag);
     g.addEventListener('touchstart',startDragTouch,{passive:false});
-
     nodeG.appendChild(g);
   });
 
@@ -586,6 +660,46 @@ function buildSVG(treeEdges=null){
   svg.addEventListener('mouseleave',endDrag);
   svg.addEventListener('touchmove',onDragTouch,{passive:false});
   svg.addEventListener('touchend',endDrag);
+}
+
+// Apply visual style to an edge group based on state
+function applyEdgeStyle(grp, key, revealTreeEdges){
+  const vis=grp.querySelector('.edge-vis');
+  const wt=grp.querySelector('text');
+  vis.className.baseVal='edge-vis'; // reset
+
+  if(revealTreeEdges){
+    // Revealed mode: show correct/wrong/missing
+    const isCorrectTree=revealTreeEdges.has(key);
+    const isStudentPicked=studentTree.has(key);
+    if(isCorrectTree && isStudentPicked){
+      vis.classList.add('ev-correct');
+      if(wt) wt.setAttribute('fill','#188038');
+    } else if(isCorrectTree && !isStudentPicked){
+      vis.classList.add('ev-missing');
+      if(wt) wt.setAttribute('fill','#e37400');
+    } else if(!isCorrectTree && isStudentPicked){
+      vis.classList.add('ev-wrong');
+      if(wt) wt.setAttribute('fill','#c5221f');
+    } else {
+      vis.classList.add('ev-default');
+      if(wt) wt.setAttribute('fill','#5f6368');
+    }
+  } else {
+    // Student mode
+    if(studentTree.has(key)){
+      vis.classList.add('ev-student');
+      if(wt) wt.setAttribute('fill','#188038');
+    } else {
+      vis.classList.add('ev-default');
+      if(wt) wt.setAttribute('fill','#5f6368');
+    }
+  }
+}
+
+function updateStudentEdgeCount(){
+  const el=document.getElementById('studentEdgeCount');
+  if(el) el.textContent=studentTree.size;
 }
 
 function svgPoint(clientX,clientY){
@@ -640,14 +754,9 @@ function moveNode(id,nx,ny){
   if(g){
     g.querySelector('circle').setAttribute('cx',nx);
     g.querySelector('circle').setAttribute('cy',ny);
-    const txts=g.querySelectorAll('text');
-    txts.forEach(t=>{
-      const fs=parseFloat(t.getAttribute('font-size'));
-      t.setAttribute('x',nx);
-      // node label (fs>=13 and no cost context) sits at center
-      // cost label (bold, fs=13 but placed after) sits at +38
-      // Distinguish: cost label has font-weight=700 AND fill=#1a73e8
+    g.querySelectorAll('text').forEach(t=>{
       const isCostLabel=t.getAttribute('fill')==='#1a73e8'&&t.getAttribute('font-weight')==='700';
+      t.setAttribute('x',nx);
       t.setAttribute('y',isCostLabel?ny+38:ny);
     });
   }
@@ -656,10 +765,12 @@ function moveNode(id,nx,ny){
     const key=[u,v].sort().join('-');
     const eg=svg.querySelector(`g[data-edge="${key}"]`);
     if(!eg)return;
-    const line=eg.querySelector('line');
     const p1=nodePos[u],p2=nodePos[v];
-    line.setAttribute('x1',p1.x);line.setAttribute('y1',p1.y);
-    line.setAttribute('x2',p2.x);line.setAttribute('y2',p2.y);
+    // Update both vis and hit lines
+    eg.querySelectorAll('line').forEach(ln=>{
+      ln.setAttribute('x1',p1.x);ln.setAttribute('y1',p1.y);
+      ln.setAttribute('x2',p2.x);ln.setAttribute('y2',p2.y);
+    });
     const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
     const wr=eg.querySelector('rect');const wt=eg.querySelector('text');
     if(wr){wr.setAttribute('x',mx-11);wr.setAttribute('y',my-10);}
@@ -809,40 +920,79 @@ function checkWork(){
   if(!SOL||revealed)return;
   const sortedNodes=[...G.nodes].sort();
   const steps=SOL.snapshots.length;
-  let correct=0,wrong=0,total=0;
 
-  // Check nodo-attraversato row
+  // ── Tabella: nodo attraversato ──
+  let tblOk=0, tblErr=0, tblTot=0;
   for(let s=0;s<steps;s++){
     const inp=document.getElementById(`ni-${s}`);
     if(!inp)continue;
-    total++;
+    tblTot++;
     inp.classList.remove('ni-ok','ni-err');
     const v=inp.value.trim().toUpperCase();
     const exp=SOL.extractOrder[s];
-    if(v===exp){inp.classList.add('ni-ok');correct++;}
-    else if(v!==''){inp.classList.add('ni-err');wrong++;}
+    if(v===exp){inp.classList.add('ni-ok');tblOk++;}
+    else if(v!==''){inp.classList.add('ni-err');tblErr++;}
   }
 
-  // Check distance cells
+  // ── Tabella: celle distanza ──
   sortedNodes.forEach((node,ri)=>{
     for(let s=0;s<steps;s++){
       const inp=document.getElementById(`ci-${ri}-${s}`);
       if(!inp||inp.readOnly)continue;
-      total++;
+      tblTot++;
       inp.classList.remove('c-ok','c-err');
       const v=inp.value.trim().toUpperCase();
       const exp=tableData[ri][s];
-      if(v===exp){inp.classList.add('c-ok');correct++;}
-      else if(v!==''){inp.classList.add('c-err');wrong++;}
+      if(v===exp){inp.classList.add('c-ok');tblOk++;}
+      else if(v!==''){inp.classList.add('c-err');tblErr++;}
     }
   });
 
-  document.getElementById('scVal').textContent=`${correct}/${total}`;
-  document.getElementById('scErr').textContent=wrong;
-  const allOk=correct===total&&total>0;
+  // ── Archi albero ──
+  const correctTree=SOL.treeEdges;
+  let arcOk=0, arcErr=0;
+  const arcTot=correctTree.size;
+
+  // Colour each edge on the graph immediately
+  G.edges.forEach(({u,v})=>{
+    const key=[u,v].sort().join('-');
+    const grp=svg.querySelector(`g[data-edge="${key}"]`);
+    if(!grp)return;
+    const vis=grp.querySelector('.edge-vis');
+    const wt=grp.querySelector('text');
+    if(!vis)return;
+    vis.className.baseVal='edge-vis'; // reset classes
+
+    const inCorrect=correctTree.has(key);
+    const inStudent=studentTree.has(key);
+
+    if(inStudent && inCorrect){
+      vis.classList.add('ev-correct'); arcOk++;
+      if(wt) wt.setAttribute('fill','#188038');
+    } else if(inStudent && !inCorrect){
+      vis.classList.add('ev-wrong');   arcErr++;
+      if(wt) wt.setAttribute('fill','#c5221f');
+    } else {
+      vis.classList.add('ev-default');
+      if(wt) wt.setAttribute('fill','#5f6368');
+    }
+    // Note: missing (correct but not selected) shown only on full reveal
+  });
+
+  // ── Fill score panel ──
+  const totOk  = tblOk  + arcOk;
+  const totErr = tblErr + arcErr;
+  document.getElementById('sc-tbl-ok').textContent  = `${tblOk}/${tblTot}`;
+  document.getElementById('sc-tbl-err').textContent = tblErr||'0';
+  document.getElementById('sc-arc-ok').textContent  = `${arcOk}/${arcTot}`;
+  document.getElementById('sc-arc-err').textContent = arcErr||'0';
+  document.getElementById('sc-tot-ok').textContent  = `${totOk}/${tblTot+arcTot}`;
+  document.getElementById('sc-tot-err').textContent = totErr||'0';
+
+  const allOk = tblOk===tblTot && arcOk===arcTot && arcErr===0 && tblErr===0;
   setBanner(allOk?'b-ok':'b-err',
-    allOk?'🎉 Perfetto! Tutte le celle sono corrette.'
-         :`${correct} corrette su ${total} · ${wrong} errate · ${total-correct-wrong} vuote`);
+    allOk ? '🎉 Perfetto! Tabella e albero sono completamente corretti.'
+          : `Tabella: ${tblOk}/${tblTot} corrette · Archi: ${arcOk}/${arcTot} corretti · ${totErr} errati`);
 }
 
 // ═══════════════════════════════════════════════════
@@ -853,12 +1003,34 @@ function closeConfirm(){document.getElementById('confirmScrim').classList.remove
 function doReveal(){
   closeConfirm(); revealed=true;
   buildTable(true);
-  buildSVG(SOL.treeEdges);
+  buildSVG(SOL.treeEdges);   // passes correct tree → colours edges correct/wrong/missing
   buildTreeSidebar();
   buildExtractedChips();
   document.getElementById('playBtn').disabled=true;
   document.getElementById('checkBtn').disabled=true;
-  setBanner('b-ok','Soluzione rivelata! Studia la tabella e l\'albero dei cammini minimi sul grafo.');
+  // Add revealed legend to sidebar tree section
+  const info=document.getElementById('studentTreeInfo');
+  if(info){
+    const corr=[...SOL.treeEdges].filter(k=>studentTree.has(k)).length;
+    const wrong=[...studentTree].filter(k=>!SOL.treeEdges.has(k)).length;
+    const miss=SOL.treeEdges.size-corr;
+    info.innerHTML=`
+      <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;font-size:.74rem;line-height:1.6;">
+        <span style="display:flex;align-items:center;gap:6px;color:#188038;">
+          <svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke="#188038" stroke-width="2.5" stroke-dasharray="4,2"/></svg>
+          <strong>${corr}</strong> archi corretti
+        </span>
+        ${wrong?`<span style="display:flex;align-items:center;gap:6px;color:#c5221f;">
+          <svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke="#c5221f" stroke-width="2.5"/></svg>
+          <strong>${wrong}</strong> archi errati (non nell'albero)
+        </span>`:''}
+        ${miss?`<span style="display:flex;align-items:center;gap:6px;color:#e37400;">
+          <svg width="16" height="8"><line x1="0" y1="4" x2="16" y2="4" stroke="#e37400" stroke-width="2" stroke-dasharray="3,3"/></svg>
+          <strong>${miss}</strong> archi mancanti
+        </span>`:''}
+      </div>`;
+  }
+  setBanner('b-ok','Soluzione rivelata! Verde = corretto · Rosso = errato · Arancio = mancante.');
 }
 
 function buildTreeSidebar(){
@@ -906,12 +1078,20 @@ function populateSelect(){
 
 function resetUI(){
   revealed=false;
+  studentTree=new Set();
+  updateStudentEdgeCount();
   document.getElementById('treeList').innerHTML='<span style="font-size:.78rem;color:var(--on-surf-v);font-style:italic">Disponibile dopo ▶ Soluzione</span>';
+  const info=document.getElementById('studentTreeInfo');
+  if(info) info.innerHTML=`<span style="display:inline-flex;align-items:center;gap:4px;">
+    <svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" stroke="#188038" stroke-width="2" stroke-dasharray="4,2"/></svg>
+    Archi selezionati: <strong id="studentEdgeCount">0</strong>
+  </span>`;
   document.getElementById('extractedChips').innerHTML='<span class="chips-empty">—</span>';
   document.getElementById('playBtn').disabled=false;
   document.getElementById('checkBtn').disabled=false;
-  document.getElementById('scVal').textContent='—';
-  document.getElementById('scErr').textContent='—';
+  // Reset score panel
+  ['sc-tbl-ok','sc-tbl-err','sc-arc-ok','sc-arc-err','sc-tot-ok','sc-tot-err']
+    .forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='—'; });
   document.getElementById('graphSub').textContent=`${G.edges.length} archi · ${G.nodes.length} nodi`;
 }
 
