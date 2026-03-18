@@ -345,14 +345,9 @@ function buildExplanation(ip, routes) {
 // ROUTE GENERATION
 // ═══════════════════════════════════════════════════════════
 function genRoutes() {
-  const usedPorts = new Set();
   const routes = [];
   let li = 0;
 
-  function nextPort() {
-    let p; do { p = ri(1, 8); } while (usedPorts.has(p));
-    usedPorts.add(p); return p;
-  }
   function nh(i) { return { r1ip: `10.${i}.0.1`, nbip: `10.${i}.0.2`, linkLabel: `10.${i}.0.0/30` }; }
 
   const b1 = ri(170, 200), b2 = ri(10, 90);
@@ -360,80 +355,185 @@ function genRoutes() {
   // A: /16 — INDIRECT
   const lA = nh(li++);
   routes.push({ dest:`${b1}.${b2}.0.0`, mask:plen2mask(16), prefixLen:16,
-    type:'indirect', port:nextPort(), nextHop:lA.nbip, r1ip:lA.r1ip, nbip:lA.nbip, linkLabel:lA.linkLabel });
+    type:'indirect', port:0, nextHop:lA.nbip, r1ip:lA.r1ip, nbip:lA.nbip, linkLabel:lA.linkLabel });
 
   // B: /24 inside A — INDIRECT
   const s24 = ri(1, 254);
   const lB = nh(li++);
   routes.push({ dest:`${b1}.${b2}.${s24}.0`, mask:plen2mask(24), prefixLen:24,
-    type:'indirect', port:nextPort(), nextHop:lB.nbip, r1ip:lB.r1ip, nbip:lB.nbip, linkLabel:lB.linkLabel });
+    type:'indirect', port:0, nextHop:lB.nbip, r1ip:lB.r1ip, nbip:lB.nbip, linkLabel:lB.linkLabel });
 
   // C: /26 inside B, non-zero quarter — DIRECT
   const s26c = ri(1, 3) * 64;
   routes.push({ dest:`${b1}.${b2}.${s24}.${s26c}`, mask:plen2mask(26), prefixLen:26,
-    type:'direct', port:nextPort(), nextHop:'—' });
+    type:'direct', port:0, nextHop:'—' });
 
   // D: another /26 in B, different quarter — DIRECT
   let s26d; do { s26d = ri(0, 3) * 64; } while (s26d === s26c);
   routes.push({ dest:`${b1}.${b2}.${s24}.${s26d}`, mask:plen2mask(26), prefixLen:26,
-    type:'direct', port:nextPort(), nextHop:'—' });
+    type:'direct', port:0, nextHop:'—' });
 
   // E: sibling /24 — INDIRECT
   let s24b; do { s24b = ri(1, 254); } while (s24b === s24);
   const lE = nh(li++);
   routes.push({ dest:`${b1}.${b2}.${s24b}.0`, mask:plen2mask(24), prefixLen:24,
-    type:'indirect', port:nextPort(), nextHop:lE.nbip, r1ip:lE.r1ip, nbip:lE.nbip, linkLabel:lE.linkLabel });
+    type:'indirect', port:0, nextHop:lE.nbip, r1ip:lE.r1ip, nbip:lE.nbip, linkLabel:lE.linkLabel });
 
   // F: /28 inside E — INDIRECT
   const s28f = ri(1, 14) * 16;
   const lF = nh(li++);
   routes.push({ dest:`${b1}.${b2}.${s24b}.${s28f}`, mask:plen2mask(28), prefixLen:28,
-    type:'indirect', port:nextPort(), nextHop:lF.nbip, r1ip:lF.r1ip, nbip:lF.nbip, linkLabel:lF.linkLabel });
+    type:'indirect', port:0, nextHop:lF.nbip, r1ip:lF.r1ip, nbip:lF.nbip, linkLabel:lF.linkLabel });
 
-  // G: different /8 — INDIRECT
-  const oth = ri(11, 126);
+  // G: /16 con stesso b1 ma secondo ottetto diverso da b2 — INDIRECT
+  // Così tutte le rotte hanno lo stesso primo ottetto: lo studente
+  // deve ragionare sui byte successivi, non può escludere a vista.
+  let b2g; do { b2g = ri(0, 254); } while (b2g === b2);
   const lG = nh(li++);
-  routes.push({ dest:`${oth}.0.0.0`, mask:plen2mask(8), prefixLen:8,
-    type:'indirect', port:nextPort(), nextHop:lG.nbip, r1ip:lG.r1ip, nbip:lG.nbip, linkLabel:lG.linkLabel });
+  routes.push({ dest:`${b1}.${b2g}.0.0`, mask:plen2mask(16), prefixLen:16,
+    type:'indirect', port:0, nextHop:lG.nbip, r1ip:lG.r1ip, nbip:lG.nbip, linkLabel:lG.linkLabel });
 
   // Default — INDIRECT
   const lH = nh(li++);
   routes.push({ dest:'0.0.0.0', mask:'0.0.0.0', prefixLen:0,
-    type:'indirect', port:nextPort(), nextHop:lH.nbip, r1ip:lH.r1ip, nbip:lH.nbip, linkLabel:lH.linkLabel });
+    type:'indirect', port:0, nextHop:lH.nbip, r1ip:lH.r1ip, nbip:lH.nbip, linkLabel:lH.linkLabel });
 
-  return { routes, b1, b2, s24, s24b, s26c, s26d, s28f, oth };
+  // ── Assegna porte TUTTE DIVERSE alle rotte (shuffle di 1-8) ──
+  const portPool = [1,2,3,4,5,6,7,8];
+  for (let i = portPool.length-1; i > 0; i--) {
+    const j = ri(0, i); [portPool[i], portPool[j]] = [portPool[j], portPool[i]];
+  }
+  routes.forEach((r, i) => { r.port = portPool[i]; });
+
+  return { routes, b1, b2, b2g, s24, s24b, s26c, s26d, s28f };
 }
 
 // ═══════════════════════════════════════════════════════════
-// PACKET GENERATION
+// PACKET GENERATION — vera casualità
+//
+// Strategia: costruiamo un pool di "generatori di IP" uno per
+// ogni zona della tabella di routing, poi peschiamo a caso
+// N ∈ [5,6] pacchetti dal pool senza vincoli di unicità per
+// porta o di copertura di ogni rotta. Questo produce:
+//   - più pacchetti con la stessa porta di uscita
+//   - nessuna correlazione sistematica fra posizione e rotta
+//   - la rotta di default può esserci o no
 // ═══════════════════════════════════════════════════════════
-function genPackets({ routes, b1, b2, s24, s24b, s26c, s26d, s28f, oth }) {
-  const pool = [];
+function genPackets({ routes, b1, b2, b2g, s24, s24b, s26c, s26d, s28f }) {
 
-  pool.push(`${b1}.${b2}.${s24}.${s26c + ri(1, 62)}`);
+  // Generatori: ogni funzione produce un IP casuale in quella zona
+  const generators = [];
 
-  let ip2 = ri(1, 253), t2 = 0;
-  while (((ip2>=s26c&&ip2<s26c+64)||(ip2>=s26d&&ip2<s26d+64)) && t2++<300) ip2=ri(1,253);
-  pool.push(`${b1}.${b2}.${s24}.${ip2}`);
+  // Zona /26 C  (più specifica di /24 B e /16 A)
+  generators.push(() => `${b1}.${b2}.${s24}.${s26c + ri(1, 62)}`);
 
-  pool.push(`${b1}.${b2}.${s24}.${s26d + ri(1, 62)}`);
+  // Zona /26 D  (altra sotto-rete di /24 B)
+  generators.push(() => `${b1}.${b2}.${s24}.${s26d + ri(1, 62)}`);
 
-  let t3; do { t3 = ri(1, 254); } while (t3===s24||t3===s24b);
-  pool.push(`${b1}.${b2}.${t3}.${ri(1, 254)}`);
+  // Zona /24 B fuori da entrambi i /26
+  generators.push(() => {
+    let ip; let t = 0;
+    do { ip = ri(1, 253); t++; }
+    while (((ip >= s26c && ip < s26c+64) || (ip >= s26d && ip < s26d+64)) && t < 400);
+    return `${b1}.${b2}.${s24}.${ip}`;
+  });
 
-  pool.push(`${b1}.${b2}.${s24b}.${s28f + ri(1, 14)}`);
+  // Zona /28 F  (più specifica di /24 E e /16 A)
+  generators.push(() => `${b1}.${b2}.${s24b}.${s28f + ri(1, 14)}`);
 
-  let ip6 = ri(1, 253), t6 = 0;
-  while (ip6>=s28f && ip6<s28f+16 && t6++<300) ip6=ri(1,253);
-  pool.push(`${b1}.${b2}.${s24b}.${ip6}`);
+  // Zona /24 E fuori dal /28 F
+  generators.push(() => {
+    let ip; let t = 0;
+    do { ip = ri(1, 253); t++; }
+    while (ip >= s28f && ip < s28f+16 && t < 400);
+    return `${b1}.${b2}.${s24b}.${ip}`;
+  });
 
-  pool.push(`${oth}.${ri(0,254)}.${ri(0,254)}.${ri(1,254)}`);
-  pool.push(`${ri(11,126)}.${ri(0,254)}.${ri(0,254)}.${ri(1,254)}`);
+  // Zona /16 A fuori da /24 B e /24 E
+  generators.push(() => {
+    let t3; do { t3 = ri(1, 254); } while (t3 === s24 || t3 === s24b);
+    return `${b1}.${b2}.${t3}.${ri(1, 254)}`;
+  });
 
-  const fixed = pool.slice(0, 3);
-  const rest  = pool.slice(3);
-  for (let i=rest.length-1;i>0;i--){const j=ri(0,i);[rest[i],rest[j]]=[rest[j],rest[i]];}
-  return [...fixed,...rest].slice(0, ri(5, 6));
+  // Zona /16 G — stesso b1, secondo ottetto b2g
+  generators.push(() => `${b1}.${b2g}.${ri(0, 254)}.${ri(1, 254)}`);
+
+  // Zona default — IP con stesso b1 ma in una sottorete non presente in tabella.
+  // Verifichiamo con LPM che nessuna rotta specifica (prefixLen > 0) lo catturi.
+  generators.push(() => {
+    let candidate, tries = 0;
+    do {
+      tries++;
+      const strategy = ri(0, 1);
+      let ip;
+      if (strategy === 0) {
+        // Stesso b1.b2 ma terzo ottetto non coperto da nessuna rotta /24
+        let t; let tt = 0;
+        do { t = ri(1, 254); tt++; } while ((t === s24 || t === s24b) && tt < 200);
+        ip = `${b1}.${b2}.${t}.${ri(1, 254)}`;
+      } else {
+        // Stesso b1, secondo ottetto diverso da b2 e b2g
+        let o2; let tt = 0;
+        do { o2 = ri(0, 254); tt++; } while ((o2 === b2 || o2 === b2g) && tt < 200);
+        ip = `${b1}.${o2}.${ri(0, 254)}.${ri(1, 254)}`;
+      }
+      candidate = ip;
+      const hit = routes.find(r =>
+        r.prefixLen > 0 && applyMask(candidate, r.mask) === ip2int(r.dest)
+      );
+      if (!hit) break;
+    } while (tries < 600);
+    return candidate;
+  });
+
+  // Quanti pacchetti vogliamo (5 o 6)
+  const n = ri(5, 6);
+
+  // Shuffle i generatori
+  const gens = [...generators];
+  for (let i = gens.length - 1; i > 0; i--) {
+    const j = ri(0, i); [gens[i], gens[j]] = [gens[j], gens[i]];
+  }
+
+  // Genera n IP dai primi n generatori (con wrap se n > gens.length)
+  let chosen = [];
+  for (let k = 0; k < n; k++) {
+    chosen.push(gens[k % gens.length]());
+  }
+
+  // ── Garantisci almeno un doppione tra le PORTE DI USCITA ──
+  // Calcola le porte risultanti via LPM
+  const getPorts = ips => ips.map(ip => { const m = lpm(ip, routes); return m ? m.port : null; });
+  let ports = getPorts(chosen);
+  const hasDupe = ports.some((p, i) => ports.indexOf(p) !== i);
+
+  if (!hasDupe) {
+    // Scegli un indice casuale da sostituire con un IP che matchi
+    // la stessa rotta di un altro pacchetto già presente
+    const targetIdx = ri(0, chosen.length - 1);
+    const sourceIdx = ri(0, chosen.length - 1);
+    if (sourceIdx !== targetIdx) {
+      const sourcePort = ports[sourceIdx];
+      // Trova la rotta corrispondente al pacchetto sorgente
+      const sourceRoute = routes.find(r => r.port === sourcePort);
+      if (sourceRoute && sourceRoute.prefixLen > 0) {
+        // Genera un nuovo IP che cada nella stessa rotta (stesso prefisso)
+        // ma con host diverso
+        const destInt = ip2int(sourceRoute.dest);
+        const hostBits = 32 - sourceRoute.prefixLen;
+        const hostRange = (1 << hostBits) - 2; // escludi network e broadcast
+        const newHostInt = destInt + ri(1, Math.min(hostRange, 250));
+        chosen[targetIdx] = int2ip(newHostInt >>> 0);
+      }
+    }
+  }
+
+  // Shuffle finale → nessun ordine sistematico
+  for (let i = chosen.length - 1; i > 0; i--) {
+    const j = ri(0, i); [chosen[i], chosen[j]] = [chosen[j], chosen[i]];
+  }
+
+  return chosen;
 }
 
 // ═══════════════════════════════════════════════════════════
