@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulatore RIPv1</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --md-primary: #6750A4;
+            --md-on-primary: #FFFFFF;
+            --md-surface: #FFFBFE;
+            --md-on-surface: #1C1B1F;
+            --md-surface-variant: #E7E0EC;
+            --md-on-surface-variant: #49454F;
+            --md-outline: #79747E;
+            --md-outline-variant: #CAC4D0;
+            --md-error: #B3261E;
+            --md-on-error: #FFFFFF;
+            --md-success: #146c2e;
+            --md-success-bg: #d4edda;
+            --md-error-bg: #f8d7da;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--md-surface-variant);
+            color: var(--md-on-surface);
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--md-primary);
+            color: var(--md-on-primary);
+            padding: 16px 24px;
+            border-radius: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h1, h2 { margin: 0; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            flex: 1;
+        }
+
+        .column-left { flex: 1 1 45%; min-width: 400px; }
+        .column-right { flex: 1 1 45%; min-width: 400px; }
+
+        .md-card {
+            background-color: var(--md-surface);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            margin-bottom: 24px;
+        }
+
+        #network-canvas {
+            width: 100%;
+            height: 450px;
+            border: 1px solid var(--md-outline-variant);
+            border-radius: 8px;
+            background-color: var(--md-surface);
+        }
+
+        .md-btn {
+            background-color: var(--md-primary);
+            color: var(--md-on-primary);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .md-btn:hover { opacity: 0.9; }
+        .md-btn-outline {
+            background-color: transparent;
+            color: var(--md-primary);
+            border: 1px solid var(--md-outline);
+        }
+        .md-btn-outline-white {
+            background-color: transparent;
+            color: var(--md-on-primary);
+            border: 1px solid var(--md-on-primary);
+        }
+        .md-btn-error {
+            background-color: var(--md-error);
+            color: var(--md-on-error);
+        }
+        .md-btn-success {
+            background-color: var(--md-success);
+            color: var(--md-on-primary);
+        }
+
+        .controls-bar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+        .controls-bar select {
+            padding: 12px;
+            border: 1px solid var(--md-outline);
+            border-radius: 4px;
+            font-size: 16px;
+            flex: 1;
+            background: var(--md-surface);
+        }
+
+        table.md-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+        table.md-table th {
+            background-color: var(--md-surface-variant);
+            color: var(--md-on-surface-variant);
+            padding: 12px;
+            text-align: left;
+            font-weight: 500;
+        }
+        table.md-table td {
+            padding: 8px;
+            border-bottom: 1px solid var(--md-outline-variant);
+            transition: background-color 0.3s;
+        }
+        table.md-table input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px;
+            border: 1px solid var(--md-outline);
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        .table-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .header-actions select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid var(--md-outline);
+            font-size: 14px;
+        }
+        
+        input.deleted-route {
+            text-decoration: line-through;
+            color: var(--md-error);
+            background-color: var(--md-error-bg);
+            font-weight: bold;
+        }
+
+        .footer-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 24px;
+            font-weight: 500;
+            text-align: center;
+            border: 1px solid #ffeeba;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>Simulatore RIPv1</h1>
+        </div>
+        <button class="md-btn md-btn-outline-white" onclick="initSimulation()">🔄 Genera Nuovo Scenario</button>
+    </header>
+
+    <div class="container">
+        <div class="column-left">
+            <div class="md-card" style="margin-bottom: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h2>Topologia di Rete</h2>
+                    <div class="header-actions">
+                        <select id="failRouterSelect"></select>
+                        <button class="md-btn md-btn-error" id="btnGuasto" onclick="triggerSpecificFailure()">⚡ Simula Guasto</button>
+                        <button class="md-btn md-btn-success" id="btnRipristina" onclick="triggerRecover()" style="display: none;">🔧 Ripristina</button>
+                    </div>
+                </div>
+                <div id="network-canvas"></div>
+            </div>
+        </div>
+
+        <div class="column-right">
+            <div class="md-card" style="height: 100%;">
+                <h2 style="margin-bottom: 16px;">Tabella di Routing</h2>
+                
+                <div class="controls-bar">
+                    <select id="stepSelect" onchange="handleSelectionChange()"></select>
+                    <select id="routerSelect" onchange="handleSelectionChange()"></select>
+                </div>
+                
+                <div id="statusAlert" style="margin-bottom: 16px; font-weight: bold; color: var(--md-error);"></div>
+
+                <table class="md-table" id="routingTable">
+                    <thead>
+                        <tr>
+                            <th>Network (Rete)</th>
+                            <th>Next Hop</th>
+                            <th>Interface</th>
+                            <th>Distance</th>
+                            <th style="width: 50px;">Azione</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTbody">
+                    </tbody>
+                </table>
+
+                <div class="table-actions">
+                    <button class="md-btn md-btn-outline" onclick="addRow()">+ Aggiungi Riga</button>
+                    <button class="md-btn" onclick="verifyTable()">✓ Verifica</button>
+                    <button class="md-btn md-btn-outline" style="margin-left:auto; color: var(--md-primary);" onclick="showSolution()">💡 Mostra Soluzione</button>
+                </div>
+                <div id="feedback" style="margin-top: 16px; font-weight: 500;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-warning">
+        ⚠️ Questa applicazione potrebbe presentare errori. In caso di dubbi, fai uno screenshot e discutine con il docente in classe.
+    </div>
+
+    <script>
+        let routers = [];
+        let networks = [];
+        let connections = [];
+        let ripSteps = {}; 
+        
+        let failedRouter = null;
+        let failTime = -1;
+        let recoverTime = -1;
+        let isShowingSolution = false;
+
+        let nodesDataset = new vis.DataSet();
+        let edgesDataset = new vis.DataSet();
+        let networkInstance = null;
+
+        window.onload = () => {
+            initSimulation();
+        };
+
+        function initSimulation() {
+            failedRouter = null;
+            failTime = -1;
+            recoverTime = -1;
+            isShowingSolution = false;
+            document.getElementById('statusAlert').innerText = "";
+            document.getElementById('feedback').innerText = "";
+            document.getElementById('btnGuasto').style.display = 'inline-flex';
+            document.getElementById('btnRipristina').style.display = 'none';
+            
+            generateTopology();
+            populateFailRouterSelect();
+            populateStepSelect();
+            populateRouters();
+            calculateRIP();
+            handleSelectionChange();
+        }
+
+        function generateTopology() {
+            routers = []; networks = []; connections = [];
+            let numR = Math.floor(Math.random() * 2) + 4;
+            for(let i=1; i<=numR; i++) routers.push('R'+i);
+
+            let netCounter = 1;
+            function addNet(rA, rB) {
+                let netIp = `192.168.${netCounter}.0`;
+                networks.push(netIp);
+                let ifaceA = `ETH${connections.filter(c => c.router === rA).length}`;
+                connections.push({ router: rA, network: netIp, interface: ifaceA, ip: `192.168.${netCounter}.1` });
+                let ifaceB = `ETH${connections.filter(c => c.router === rB).length}`;
+                connections.push({ router: rB, network: netIp, interface: ifaceB, ip: `192.168.${netCounter}.2` });
+                netCounter++;
+            }
+
+            for(let i=0; i<numR-1; i++) addNet(routers[i], routers[i+1]);
+            let numExtra = Math.floor(Math.random() * 2) + 1;
+            for(let i=0; i<numExtra; i++) {
+                let rA = routers[Math.floor(Math.random() * numR)];
+                let rB = routers[Math.floor(Math.random() * numR)];
+                let alreadyConnected = networks.some(net => {
+                    let connected = connections.filter(c => c.network === net).map(c => c.router);
+                    return connected.includes(rA) && connected.includes(rB);
+                });
+                if(rA !== rB && !alreadyConnected) addNet(rA, rB);
+            }
+
+            nodesDataset.clear();
+            edgesDataset.clear();
+
+            routers.forEach(r => {
+                nodesDataset.add({ 
+                    id: r, label: r, shape: 'box', 
+                    color: { background: '#6750A4', border: '#21005D' }, 
+                    font: {color: '#FFFFFF', size: 16, bold: true}, margin: 10 
+                });
+            });
+            
+            networks.forEach(net => {
+                nodesDataset.add({ id: net, label: net, shape: 'cloud', color: '#EADDFF', font: {color: '#21005D', size: 14} });
+            });
+            
+            connections.forEach((c, idx) => {
+                edgesDataset.add({
+                    id: 'e'+idx, from: c.router, to: c.network, router: c.router,
+                    label: `${c.interface}\n${c.ip}`,
+                    font: { align: 'middle', size: 11, background: 'rgba(255,255,255,0.7)' },
+                    color: '#79747E', length: 150, width: 2, dashes: false
+                });
+            });
+
+            if (networkInstance) {
+                networkInstance.destroy();
+            }
+
+            let container = document.getElementById('network-canvas');
+            let data = { nodes: nodesDataset, edges: edgesDataset };
+            
+            networkInstance = new vis.Network(container, data, { 
+                physics: { 
+                    stabilization: { iterations: 150 },
+                    barnesHut: { springLength: 150, nodeDistance: 130 },
+                    solver: 'barnesHut'
+                } 
+            });
+
+            networkInstance.once("stabilizationIterationsDone", function () {
+                networkInstance.setOptions({ physics: false });
+                networkInstance.fit({ animation: { duration: 500, easingFunction: "easeInOutQuad" } });
+            });
+        }
+
+        function populateFailRouterSelect() {
+            let sel = document.getElementById('failRouterSelect');
+            sel.innerHTML = '';
+            routers.forEach(r => {
+                let opt = document.createElement('option');
+                opt.value = r;
+                opt.text = `Seleziona ${r}`;
+                sel.appendChild(opt);
+            });
+        }
+
+        function populateStepSelect() {
+            let sel = document.getElementById('stepSelect');
+            let currentVal = sel.value;
+            sel.innerHTML = '';
+            for (let t = 0; t <= 450; t += 30) {
+                let opt = document.createElement('option');
+                opt.value = t;
+                opt.text = t === 0 ? "T0 (0s - Accensione)" : `T${t/30} (${t}s)`;
+                sel.appendChild(opt);
+            }
+            if(currentVal && currentVal <= 450) sel.value = currentVal;
+            else sel.value = 0;
+        }
+
+        function populateRouters() {
+            let sel = document.getElementById('routerSelect');
+            sel.innerHTML = '';
+            routers.forEach(r => {
+                let opt = document.createElement('option');
+                opt.value = r;
+                opt.text = `Router ${r}`;
+                sel.appendChild(opt);
+            });
+        }
+
+        function triggerSpecificFailure() {
+            let routerToFail = document.getElementById('failRouterSelect').value;
+            if(!routerToFail) return;
+            
+            let currentT = parseInt(document.getElementById('stepSelect').value);
+            failedRouter = routerToFail;
+            failTime = currentT;
+            recoverTime = -1;
+            
+            document.getElementById('btnGuasto').style.display = 'none';
+            document.getElementById('btnRipristina').style.display = 'inline-flex';
+
+            calculateRIP();
+            handleSelectionChange();
+        }
+
+        function triggerRecover() {
+            let currentT = parseInt(document.getElementById('stepSelect').value);
+            // Non permettere di ripristinare in un tempo antecedente al guasto
+            if (currentT < failTime) {
+                alert("Non puoi ripristinare il router in un istante temporale precedente al guasto!");
+                return;
+            }
+            recoverTime = currentT;
+            
+            document.getElementById('btnGuasto').style.display = 'inline-flex';
+            document.getElementById('btnRipristina').style.display = 'none';
+
+            calculateRIP();
+            handleSelectionChange();
+        }
+
+        function checkTimeState() {
+            let t = parseInt(document.getElementById('stepSelect').value);
+            let alertEl = document.getElementById('statusAlert');
+            if (failedRouter) {
+                if (recoverTime !== -1 && t >= recoverTime) {
+                    alertEl.style.color = 'var(--md-success)';
+                    alertEl.innerText = `✔️ Router ${failedRouter} ripristinato a ${recoverTime}s. Reti nuovamente operative.`;
+                } else if (t >= failTime) {
+                    alertEl.style.color = 'var(--md-error)';
+                    alertEl.innerText = `⚠️ Router ${failedRouter} fuori uso da ${t - failTime}s (Guasto avvenuto a ${failTime}s).`;
+                } else {
+                    alertEl.style.color = 'var(--md-error)';
+                    alertEl.innerText = `⚠️ Guasto programmato per il Router ${failedRouter} a ${failTime}s.`;
+                }
+            } else {
+                alertEl.innerText = "";
+            }
+        }
+
+        function isDead(r, t) {
+            if (r !== failedRouter) return false;
+            if (failTime === -1) return false;
+            if (t >= failTime) {
+                if (recoverTime === -1) return true;
+                if (t < recoverTime) return true;
+            }
+            return false;
+        }
+
+        function calculateRIP() {
+            ripSteps = {};
+            let prevStep = {};
+            routers.forEach(r => prevStep[r] = []);
+
+            for (let t = 0; t <= 450; t += 30) {
+                let currentStep = JSON.parse(JSON.stringify(prevStep));
+                
+                if (isDead(failedRouter, t)) {
+                    currentStep[failedRouter] = [];
+                }
+
+                // FASE 1: Invecchiamento (Aging) e aggiornamento connessioni dirette
+                routers.forEach(r => {
+                    if (isDead(r, t)) return;
+                    
+                    let myConns = connections.filter(c => c.router === r);
+                    myConns.forEach(c => {
+                        let existing = currentStep[r].find(route => route.network === c.network && route.distance === 0);
+                        if (!existing) {
+                            currentStep[r].push({
+                                network: c.network, nextHop: c.ip, interface: c.interface, distance: 0, lastUpdated: t
+                            });
+                        } else {
+                            existing.lastUpdated = t;
+                            existing.deleted = false;
+                            delete existing.invalidatedAt;
+                        }
+                    });
+
+                    currentStep[r] = currentStep[r].filter(route => {
+                        if (route.distance === 0) return true;
+                        
+                        let age = t - route.lastUpdated;
+                        
+                        // Dopo 60s dall'invalidazione, barra e prepara all'eliminazione
+                        if (route.invalidatedAt !== undefined) {
+                            let timeSinceInvalid = t - route.invalidatedAt;
+                            if (timeSinceInvalid >= 90) return false; // Scompare definitivamente
+                            if (timeSinceInvalid >= 60) {
+                                route.deleted = true;
+                                route.distance = 16;
+                            }
+                        } 
+                        // Esattamente a 180s dal guasto (age 210), scatta il costo Invalido a 16.
+                        else if (age >= 210) { 
+                            if (route.distance < 16) {
+                                route.distance = 16;
+                                route.invalidatedAt = t; 
+                            }
+                        }
+                        return true;
+                    });
+                });
+
+                let nextStep = JSON.parse(JSON.stringify(currentStep));
+                
+                // FASE 2: Propagazione (effetto Hop-by-Hop)
+                if (t > 0) {
+                    routers.forEach(r => {
+                        if (isDead(r, t)) return;
+                        
+                        let myConns = connections.filter(c => c.router === r);
+                        myConns.forEach(myConn => {
+                            let neighborsConns = connections.filter(c => c.network === myConn.network && c.router !== r);
+                            
+                            neighborsConns.forEach(neighConn => {
+                                let neighborId = neighConn.router;
+                                if (isDead(neighborId, t)) return;
+                                
+                                // Legge i dati dallo step PRECEDENTE (fondamentale per propagare col giusto ritardo)
+                                let neighborTable = prevStep[neighborId] || [];
+                                neighborTable.forEach(route => {
+                                    if (route.deleted) return;
+
+                                    let newDist = route.distance < 16 ? route.distance + 1 : 16;
+                                    let existingRoute = nextStep[r].find(ex => ex.network === route.network);
+                                    
+                                    if (!existingRoute && newDist < 16) {
+                                        nextStep[r].push({
+                                            network: route.network, nextHop: neighConn.ip, interface: myConn.interface, distance: newDist, lastUpdated: t
+                                        });
+                                    } else if (existingRoute && !existingRoute.deleted) {
+                                        if (existingRoute.nextHop === neighConn.ip) {
+                                            existingRoute.distance = newDist;
+                                            if (newDist < 16) {
+                                                // RIPRISTINO EFFETTIVO O NORMALE UPDATE:
+                                                existingRoute.lastUpdated = t; 
+                                                existingRoute.deleted = false;
+                                                delete existingRoute.invalidatedAt;
+                                            } else {
+                                                // Il vicino comunica distanza 16: adottala subito
+                                                if (existingRoute.distance < 16) {
+                                                    existingRoute.distance = 16;
+                                                    if (existingRoute.invalidatedAt === undefined) existingRoute.invalidatedAt = t;
+                                                }
+                                            }
+                                        } else if (newDist < existingRoute.distance && existingRoute.invalidatedAt !== t) {
+                                            // Route Discovery: trovato percorso alternativo!
+                                            existingRoute.distance = newDist;
+                                            existingRoute.nextHop = neighConn.ip;
+                                            existingRoute.interface = myConn.interface;
+                                            existingRoute.lastUpdated = t;
+                                            existingRoute.deleted = false;
+                                            delete existingRoute.invalidatedAt;
+                                        }
+                                    }
+                                });
+                            });
+                        });
+                    });
+                }
+
+                ripSteps[t] = nextStep;
+                prevStep = JSON.parse(JSON.stringify(nextStep));
+            }
+        }
+
+        function renderGraph() {
+            let currentT = parseInt(document.getElementById('stepSelect').value);
+            
+            routers.forEach(r => {
+                let dead = isDead(r, currentT);
+                nodesDataset.update({
+                    id: r,
+                    color: { 
+                        background: dead ? '#B3261E' : '#6750A4', 
+                        border: dead ? '#7A1C14' : '#21005D'
+                    }
+                });
+            });
+            
+            let edges = edgesDataset.get();
+            edges.forEach(e => {
+                let dead = isDead(e.router, currentT);
+                edgesDataset.update({
+                    id: e.id,
+                    color: dead ? '#E7E0EC' : '#79747E',
+                    dashes: dead
+                });
+            });
+        }
+
+        function handleSelectionChange() {
+            checkTimeState();
+            renderGraph();
+            
+            document.getElementById('feedback').innerText = '';
+            
+            if (isShowingSolution) {
+                populateTableWithExpected();
+            } else {
+                document.getElementById('userTbody').innerHTML = '';
+            }
+        }
+
+        function populateTableWithExpected() {
+            document.getElementById('userTbody').innerHTML = '';
+            let t = document.getElementById('stepSelect').value;
+            let router = document.getElementById('routerSelect').value;
+            let expected = ripSteps[t][router];
+            
+            if (expected.length === 0 && isDead(router, t)) {
+                document.getElementById('feedback').style.color = 'var(--md-secondary)';
+                document.getElementById('feedback').innerText = "Il router è fuori uso. Nessuna rotta disponibile.";
+                return;
+            }
+
+            let sortedExpected = [...expected].sort((a,b) => a.distance - b.distance);
+            
+            sortedExpected.forEach(route => {
+                addRowRaw(route.network, route.nextHop, route.interface, route.distance, route.deleted);
+            });
+            
+            document.getElementById('feedback').style.color = 'var(--md-success)';
+            document.getElementById('feedback').innerText = "Soluzione automatica attiva.";
+        }
+
+        function addRowRaw(net='', nh='', intf='', dist='', deleted=false) {
+            let tbody = document.getElementById('userTbody');
+            let tr = document.createElement('tr');
+            
+            let cssClass = deleted ? 'deleted-route' : '';
+            let disabledAttr = deleted ? 'disabled' : '';
+
+            tr.innerHTML = `
+                <td><input type="text" class="inp-net ${cssClass}" value="${net}" placeholder="es. 192.168.1.0" ${disabledAttr}></td>
+                <td><input type="text" class="inp-nh ${cssClass}" value="${nh}" placeholder="es. 192.168.1.1" ${disabledAttr}></td>
+                <td><input type="text" class="inp-intf ${cssClass}" value="${intf}" placeholder="es. ETH0" ${disabledAttr}></td>
+                <td><input type="number" class="inp-dist ${cssClass}" value="${dist}" placeholder="es. 0" ${disabledAttr}></td>
+                <td><button class="md-btn md-btn-error" style="border-radius: 4px; padding: 6px 12px;" onclick="this.parentElement.parentElement.remove()" ${disabledAttr}>X</button></td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        function addRow() {
+            isShowingSolution = false; 
+            document.getElementById('feedback').innerText = '';
+            let rows = document.querySelectorAll('#userTbody tr');
+            rows.forEach(r => r.style.backgroundColor = 'transparent');
+            
+            addRowRaw();
+        }
+
+        function showSolution() {
+            isShowingSolution = true;
+            populateTableWithExpected();
+        }
+
+        function verifyTable() {
+            let t = document.getElementById('stepSelect').value;
+            let router = document.getElementById('routerSelect').value;
+            
+            // Per la verifica, escludiamo le rotte "deleted" e pretendiamo che l'utente inserisca quelle attive e quelle invalidate attuali.
+            let expected = JSON.parse(JSON.stringify(ripSteps[t][router]))
+                .filter(r => !r.deleted)
+                .map(r => ({
+                    network: r.network, nextHop: r.nextHop, interface: r.interface, distance: r.distance
+                })); 
+            
+            let rows = document.querySelectorAll('#userTbody tr');
+            let correctCount = 0;
+            
+            rows.forEach(row => {
+                let net = row.querySelector('.inp-net').value.trim();
+                let nh = row.querySelector('.inp-nh').value.trim();
+                let intf = row.querySelector('.inp-intf').value.trim().toUpperCase();
+                let dist = parseInt(row.querySelector('.inp-dist').value);
+                
+                let matchIndex = expected.findIndex(e => 
+                    e.network === net && e.nextHop === nh && e.interface.toUpperCase() === intf && e.distance === dist
+                );
+                
+                if (matchIndex !== -1) {
+                    row.style.backgroundColor = 'var(--md-success-bg)';
+                    expected.splice(matchIndex, 1);
+                    correctCount++;
+                } else {
+                    row.style.backgroundColor = 'var(--md-error-bg)';
+                }
+            });
+            
+            let feedbackEl = document.getElementById('feedback');
+            if(isDead(router, t) && rows.length === 0) {
+                feedbackEl.style.color = 'var(--md-success)';
+                feedbackEl.innerText = "Corretto! (Il router è in guasto, la tabella deve essere vuota)";
+            }
+            else if(expected.length === 0 && rows.length === correctCount && rows.length > 0) {
+                feedbackEl.style.color = 'var(--md-success)';
+                feedbackEl.innerText = "Corretto!";
+            } else {
+                feedbackEl.style.color = '#B3261E';
+                feedbackEl.innerText = "Incompleto o con errori. Assicurati di non inserire rotte cancellate oltre i 240 secondi dal guasto.";
+            }
+        }
+    </script>
+</body>
+</html>
