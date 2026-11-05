@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulatore Critical Path Method — Lavagna Interattiva</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Material+Icons&display=swap">
+<style>
+:root{--bg:#f8f9fa;--sf:#fff;--tx:#202124;--tx2:#5f6368;--ol:#dadce0;--pr:#1a73e8;--prc:#e8f0fe;--er:#d93025;--erc:#fce8e6;--ok:#1e8e3e;--okc:#e6f4ea;--cr:#d93025;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#202124;--sf:#2d2e31;--tx:#e8eaed;--tx2:#9aa0a6;--ol:#5f6368;--pr:#8ab4f8;--prc:#283b57;--er:#f28b82;--erc:#4a2825;--ok:#81c995;--okc:#1f3a28;--cr:#f28b82;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#202124;--sf:#2d2e31;--tx:#e8eaed;--tx2:#9aa0a6;--ol:#5f6368;--pr:#8ab4f8;--prc:#283b57;--er:#f28b82;--erc:#4a2825;--ok:#81c995;--okc:#1f3a28;--cr:#f28b82;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:400 15px/1.5 Roboto,Arial,sans-serif}
+.material-icons{font-family:"Material Icons";font-style:normal;font-weight:400;font-size:22px;line-height:1;vertical-align:middle;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:"liga";font-feature-settings:"liga"}
+.small{display:none;min-height:100vh;align-items:center;justify-content:center;text-align:center;padding:24px}
+.small div{max-width:420px;background:var(--sf);border-radius:16px;padding:28px;box-shadow:0 1px 3px rgba(60,64,67,.3)}
+.small .material-icons{font-size:48px;color:var(--pr)}
+@media(max-width:899px){.small{display:flex}main,header{display:none}}
+header{background:var(--sf);border-bottom:1px solid var(--ol);padding:16px 32px;display:flex;align-items:center;gap:16px}
+header .material-icons{font-size:32px;color:var(--pr);background:var(--prc);border-radius:12px;padding:10px}
+h1{font:500 22px/1.2 Roboto,sans-serif;margin:0}
+header p{margin:2px 0 0;color:var(--tx2);font-size:14px}
+main{max-width:1200px;margin:0 auto;padding:20px 32px 40px;display:grid;gap:16px}
+.card{background:var(--sf);border-radius:12px;box-shadow:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15);padding:16px 20px}
+.card h2{font:500 16px/1.3 Roboto,sans-serif;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.card h2 .material-icons{color:var(--pr)}
+.hint{background:var(--prc);box-shadow:none;display:flex;gap:12px;align-items:flex-start}
+.hint .material-icons{color:var(--pr)}
+.hint p{margin:0}
+.rel{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.rel span{background:var(--sf);border-radius:8px;padding:4px 10px;font-size:13px}
+table{width:100%;border-collapse:collapse}
+th{font-weight:500;font-size:13px;color:var(--tx2);text-align:center;padding:8px;border-bottom:2px solid var(--ol)}
+td{padding:6px 8px;border-bottom:1px solid var(--ol);text-align:center}
+td:nth-child(1),th:nth-child(1){text-align:left;font-weight:500}
+td.pre{text-align:left;color:var(--tx2);font-size:14px}
+tr.crit td:first-child{box-shadow:inset 3px 0 0 var(--cr)}
+input[type=number]{width:68px;height:36px;border:1px solid var(--ol);border-radius:8px;background:var(--sf);color:var(--tx);font:inherit;text-align:center}
+input[type=number]:focus{outline:2px solid var(--pr);border-color:var(--pr)}
+input.ok{background:var(--okc);border-color:var(--ok)}
+input.err{background:var(--erc);border-color:var(--er)}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--pr)}
+td.cb.ok{background:var(--okc)}td.cb.err{background:var(--erc)}
+.bar{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+button{font:500 14px Roboto,sans-serif;height:40px;border-radius:20px;padding:0 20px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;border:1px solid var(--ol);background:var(--sf);color:var(--pr)}
+button:hover{background:var(--prc)}
+button:focus-visible{outline:2px solid var(--pr);outline-offset:2px}
+button.f{background:var(--pr);color:var(--bg);border-color:var(--pr)}
+button.f:hover{filter:brightness(1.1)}
+button:disabled{opacity:.45;cursor:not-allowed;background:var(--sf)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat{background:var(--bg);border-radius:12px;padding:12px;text-align:center}
+.stat b{display:block;font:500 28px/1.2 Roboto,sans-serif}
+.stat span{color:var(--tx2);font-size:13px}
+#msg{margin-left:auto;color:var(--tx2);font-size:14px}
+svg{width:100%;height:auto;background:var(--bg);border-radius:12px;touch-action:none}
+.node rect{fill:var(--sf);stroke:var(--ol);stroke-width:1.5}
+.node.c rect{stroke:var(--cr);stroke-width:2.5}
+.node{cursor:grab}
+.node text{fill:var(--tx);font:500 13px Roboto,sans-serif;text-anchor:middle;pointer-events:none}
+.node .v{font-weight:400;font-size:12px;fill:var(--tx2)}
+.edge{stroke:var(--tx2);stroke-width:1.5;fill:none;pointer-events:none;stroke-linejoin:round}.elab{pointer-events:none}
+.edge.c{stroke:var(--cr);stroke-width:2.5}
+.elab{font:500 11px Roboto,sans-serif;fill:var(--pr);text-anchor:middle;paint-order:stroke;stroke:var(--bg);stroke-width:4px}
+.note{color:var(--tx2);font-size:13px}
+.bd{background:var(--prc);color:var(--pr);border-radius:10px;padding:1px 8px;font-size:12px;font-weight:500;margin-left:6px}
+.node .tgt{fill:var(--bg);font-size:11px}.tg{fill:var(--pr);stroke:none!important}
+.dur{font-weight:400;font-size:13px;color:var(--tx2)}
+input.given{background:var(--prc);border-color:var(--pr);font-weight:500}
+</style>
+</head>
+<body>
+<div class="small"><div><span class="material-icons">desktop_windows</span><h1>Schermo troppo piccolo</h1><p>Il simulatore CPM è pensato per uno <b>schermo grande</b>: computer, tablet in orizzontale o LIM.</p><p>Apri la pagina su un computer o chiedi al docente di proiettarla.</p></div></div>
+<header><span class="material-icons">account_tree</span><div><h1>Simulatore Critical Path Method — Lavagna Interattiva</h1><p>Vincoli FS, SS, FF, SF · Passata in avanti e all’indietro · Percorso critico</p></div></header>
+<main>
+<div class="card hint"><span class="material-icons">psychology</span><div><p>Ogni attività (WP) ha solo la <b>durata</b>. Il progetto ha un solo WP di <b>inizio</b> e uno solo di <b>fine</b>, segnalati in tabella e nel diagramma. Calcola <b>ES</b> ed <b>EF</b> in avanti (WP1 è già dato: ES = 1, EF = ES + DUR − 1), poi <b>LF</b> e <b>LS</b> all’indietro partendo dalla fine progetto. Segna come <b>critiche</b> le attività con ES = LS. Verifica in tre momenti: <b>forward</b> (ES, EF), <b>backward</b> (LS, LF) e <b>percorso critico</b>; ogni fase si sblocca quando la precedente è corretta. Oppure premi <b>Soluzione</b>.</p>
+<div class="rel"><span><b>FS ± n</b> ES<sub>B</sub> ≥ EF<sub>A</sub> + 1 ± n</span><span><b>SS ± n</b> ES<sub>B</sub> ≥ ES<sub>A</sub> ± n</span><span><b>FF ± n</b> EF<sub>B</sub> ≥ EF<sub>A</sub> ± n</span><span><b>SF ± n</b> EF<sub>B</sub> ≥ ES<sub>A</sub> − 1 ± n</span><span><b>+ n</b> ritardo obbligatorio</span><span><b>− n</b> anticipo (sovrapposizione)</span><span><b>Frecce</b> lato sinistro = inizio, lato destro = fine: destro→sinistro FS, destro→destro FF, sinistro→sinistro SS, sinistro→destro SF</span></div></div></div>
+<div class="card"><h2><span class="material-icons">table_chart</span>Tabella delle attività</h2>
+<table><thead><tr><th>WP</th><th>Predecessori (vincolo)</th><th>ES</th><th>EF</th><th>LS</th><th>LF</th><th>Critica</th></tr></thead><tbody id="tb"></tbody></table></div>
+<div class="card"><div class="bar"><button onclick="newEx()"><span class="material-icons">refresh</span>Nuovo esercizio</button><button id="v1" onclick="verify(1)"><span class="material-icons">arrow_forward</span>Verifica forward</button><button id="v2" onclick="verify(2)"><span class="material-icons">arrow_back</span>Verifica backward</button><button id="v3" onclick="verify(3)"><span class="material-icons">timeline</span>Verifica percorso critico</button><button id="sol" onclick="solution()"><span class="material-icons">play_arrow</span><span>Soluzione forward</span></button><span id="msg"></span></div></div>
+<div class="stats"><div class="stat card"><b id="s0">0</b><span>Totale</span></div><div class="stat card"><b id="s1" style="color:var(--ok)">0</b><span>Corretti</span></div><div class="stat card"><b id="s2" style="color:var(--er)">0</b><span>Errati</span></div><div class="stat card"><b id="s3">—</b><span>Accuratezza</span></div></div>
+<div class="card"><h2><span class="material-icons">hub</span>Diagramma di rete <span class="note">Trascina i nodi · il percorso critico appare in rosso con la soluzione</span></h2><svg id="g" viewBox="0 0 1200 528"></svg></div>
+<p class="note">⚠️ Questa applicazione potrebbe presentare errori. In caso di dubbi, fai uno screenshot e discutine con il docente in classe.</p>
+</main>
+<script>
+const $=s=>document.querySelector(s),F=["es","ef","ls","lf"];
+let W=[],S=[],T=0,pos=[],rev=0;
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const OFS={FS:1,SS:0,FF:0,SF:-1};
+const lag=()=>{const r=Math.random();return r<.6?0:r<.85?rnd(1,3):-rnd(1,2)};
+const lab=q=>q.t+(q.l?(q.l>0?" + ":" - ")+Math.abs(q.l):"");
+const pick=()=>{const r=Math.random();return r<.7?"FS":r<.82?"SS":r<.94?"FF":"SF"};
+function gen(){
+ const n=rnd(6,8);W=[];
+ for(let i=0;i<n;i++){
+  const p=[];
+  if(i>0){const k=i>1&&Math.random()<.45?2:1,pool=[...Array(i).keys()];
+   while(p.length<k){const x=pool.splice(Math.random()<.7?Math.max(0,pool.length-1-rnd(0,1)):rnd(0,pool.length-1),1)[0];p.push({from:x,t:pick(),l:lag()})}}
+  W.push({d:rnd(2,9),p});
+ }
+}
+function solve(){
+ S=W.map(()=>({}));
+ W.forEach((w,i)=>{let es=1;w.p.forEach(({from:j,t,l})=>{const s=S[j],e=l+OFS[t];es=Math.max(es,t=="FS"?s.ef+e:t=="SS"?s.es+e:t=="FF"?s.ef+e-w.d+1:s.es+e-w.d+1)});S[i].es=es;S[i].ef=es+w.d-1});
+ T=Math.max(...S.map(s=>s.ef));
+ for(let i=W.length-1;i>=0;i--){let lf=T;
+  W.forEach((v,k)=>v.p.forEach(({from:j,t,l})=>{if(j!=i)return;const s=S[k],e=l+OFS[t],d=W[i].d-1;lf=Math.min(lf,t=="FS"?s.ls-e:t=="SS"?s.ls-e+d:t=="FF"?s.lf-e:s.lf-e+d)}));
+  S[i].lf=lf;S[i].ls=lf-W[i].d+1;S[i].crit=S[i].ls==S[i].es}
+}
+function tight(k,j,t,l){const a=S[j],b=S[k],e=l+OFS[t];return a.crit&&b.crit&&(t=="FS"?a.ef+e==b.es:t=="SS"?a.es+e==b.es:t=="FF"?a.ef+e==b.ef:a.es+e==b.ef)}
+function layout(){
+ const lv=[],row=[],used={};
+ W.forEach((w,i)=>{
+  lv[i]=w.p.length?Math.max(...w.p.map(q=>lv[q.from]))+1:0;
+  const main=w.p.length?w.p.reduce((m,q)=>lv[q.from]>lv[m.from]?q:m).from:-1;
+  let r=main>=0?row[main]:0;
+  for(let d=0;used[lv[i]+":"+r];d++)r+=(d%2?-1:1)*(d+1);
+  used[lv[i]+":"+r]=1;row[i]=r});
+ const m=Math.max(...lv),r0=Math.min(...row),r1=Math.max(...row),n=r1-r0,
+ rs=Math.max(84,Math.min(120,Math.floor(400/Math.max(n,1)/12)*12)),
+ sp=Math.min(216,Math.floor(1032/Math.max(m,1)/12)*12),x0=84+Math.round((1032-m*sp)/24)*12;
+ pos=lv.map((l,i)=>({x:x0+l*sp,y:264+Math.round((row[i]-(r0+r1)/2)*rs/12)*12}));
+}
+function render(){
+ $("#tb").innerHTML=W.map((w,i)=>`<tr id="r${i}"><td>WP${i+1}${i==0?` <span class="bd">Inizio</span>`:i==W.length-1?` <span class="bd">Fine</span>`:""}<br><span class="dur">DUR=${w.d}</span></td><td class="pre">${w.p.length?w.p.map(q=>`WP${q.from+1} ${lab(q)}`).join(", "):"Inizio progetto"}</td>${F.map(f=>{const g=i==0&&(f=="es"||f=="ef");return `<td><input type="number" data-i="${i}" data-f="${f}" ${g?`value="${S[i][f]}" readonly class="given"`:""} aria-label="${f.toUpperCase()} WP${i+1}"></td>`}).join("")}<td class="cb"><input type="checkbox" data-i="${i}" data-f="crit" aria-label="Critica WP${i+1}"></td></tr>`).join("");
+ ["s0","s1","s2"].forEach(s=>$("#"+s).textContent=0);$("#s3").textContent="—";$("#msg").textContent="";
+ R={};P=0;SP=0;btns();sbtn();rev=0;drawG();
+}
+const G=12,CW=101,CH=45,DX=[1,0,-1,0],DY=[0,1,0,-1],DEFS=`<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#80868b"/></marker><marker id="ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#d93025"/></marker></defs>`;
+function astar(s,t,id,strict,X){
+ const N=CW*CH,best=new Float32Array(N*4).fill(1e9),prev=new Int32Array(N*4).fill(-1),h=[];
+ const push=(f,k)=>{h.push([f,k]);let i=h.length-1;while(i){const p=(i-1)>>1;if(h[p][0]<=h[i][0])break;[h[p],h[i]]=[h[i],h[p]];i=p}};
+ const pop=()=>{const r=h[0],l=h.pop();if(h.length){h[0]=l;let i=0;for(;;){let m=i,a=2*i+1,b=a+1;if(a<h.length&&h[a][0]<h[m][0])m=a;if(b<h.length&&h[b][0]<h[m][0])m=b;if(m==i)break;[h[m],h[i]]=[h[i],h[m]];i=m}}return r};
+ const k0=(s.y*CW+s.x)*4+s.d;best[k0]=0;push(0,k0);
+ while(h.length){
+  const k=pop()[1],d=k&3,c=k>>2,x=c%CW,y=(c-x)/CW;
+  if(x==t.x&&y==t.y){const pts=[];for(let q=k;q>=0;q=prev[q]){const cc=q>>2;pts.push({x:cc%CW,y:Math.floor(cc/CW)})}return pts.reverse()}
+  for(let nd=0;nd<4;nd++){
+   if(nd==((d+2)&3))continue;
+   const nx=x+DX[nd],ny=y+DY[nd];if(nx<0||ny<0||nx>=CW||ny>=CH)continue;
+   const nc=ny*CW+nx;if(X.blk[nc]||(X.res[nc]&&X.res[nc]!=id))continue;
+   let cost=1+(nd!=d?4:0);
+   if(strict){const hz=!(nd&1);if(hz?X.oh[nc]:X.ov[nc])continue;if(hz?X.ov[nc]:X.oh[nc])cost+=8}
+   const nk=nc*4+nd,ng=best[k]+cost;
+   if(ng<best[nk]){best[nk]=ng;prev[nk]=k;push(ng+Math.abs(nx-t.x)+Math.abs(ny-t.y),nk)}
+  }
+ }
+ return null;
+}
+const simp=p=>p.filter((q,i)=>!i||i==p.length-1||!((p[i-1].x==q.x&&q.x==p[i+1].x)||(p[i-1].y==q.y&&q.y==p[i+1].y)));
+function drawG(){
+ const n=CW*CH,X={blk:new Uint8Array(n),res:new Uint8Array(n),oh:new Uint8Array(n),ov:new Uint8Array(n)};
+ pos.forEach(p=>{const cx=p.x/G,cy=p.y/G;for(let x=cx-4;x<=cx+4;x++)for(let y=cy-3;y<=cy+3;y++)if(x>=0&&y>=0&&x<CW&&y<CH)X.blk[y*CW+x]=1});
+ const E=[],sl={},OFF=[[0],[-12,12],[-12,0,12],[-24,-12,12,24],[-24,-12,0,12,24]];
+ W.forEach((w,k)=>w.p.forEach(q=>{const e={k,j:q.from,t:q.t,l:q.l,id:E.length+1,ss:q.t=="FS"||q.t=="FF"?1:-1,ts:q.t=="FS"||q.t=="SS"?-1:1};E.push(e);
+  (sl[e.j+":"+e.ss]=sl[e.j+":"+e.ss]||[]).push({e,f:"so",y:pos[k].y});
+  (sl[k+":"+e.ts]=sl[k+":"+e.ts]||[]).push({e,f:"to",y:pos[q.from].y})}));
+ Object.values(sl).forEach(a=>{a.sort((p,q)=>p.y-q.y);const o=OFF[Math.min(a.length,5)-1];a.forEach((s,i)=>s.e[s.f]=o[i%o.length])});
+ E.forEach(e=>{e.A={x:pos[e.j].x+e.ss*48,y:pos[e.j].y+e.so};e.B={x:pos[e.k].x+e.ts*48,y:pos[e.k].y+e.to};
+  e.s={x:(e.A.x+e.ss*G)/G,y:e.A.y/G,d:e.ss>0?0:2};e.u={x:(e.B.x+e.ts*G)/G,y:e.B.y/G};
+  X.res[e.s.y*CW+e.s.x]=e.id;X.res[e.u.y*CW+e.u.x]=e.id});
+ const md=e=>Math.abs(e.s.x-e.u.x)+Math.abs(e.s.y-e.u.y);
+ [...E].sort((a,b)=>md(a)-md(b)).forEach(e=>{
+  const pts=astar(e.s,e.u,e.id,1,X)||astar(e.s,e.u,e.id,0,X);
+  if(pts){pts.forEach((p,i)=>{if(i){const a=pts[i-1],hz=a.y==p.y;[a,p].forEach(z=>(hz?X.oh:X.ov)[z.y*CW+z.x]=1)}});
+   e.P=simp([e.A,...pts.map(p=>({x:p.x*G,y:p.y*G})),e.B])}else e.P=[e.A,e.B]});
+ let nodes="",pa="",pc="",lb="";
+ W.forEach((w,i)=>{const p=pos[i],s=S[i],c=rev>2&&s.crit,v=rev;
+  nodes+=`<g class="node${c?" c":""}" data-n="${i}" transform="translate(${p.x},${p.y})"><rect x="-48" y="-36" width="96" height="72" rx="10"/>${i==0||i==W.length-1?`<rect class="tg" x="-26" y="-47" width="52" height="18" rx="9"/><text class="tgt" y="-34">${i?"Fine":"Inizio"}</text>`:""}<text y="-2">WP${i+1}</text><text class="v" y="14">DUR=${w.d}</text>`+((v||i==0)?`<text class="v" x="-34" y="-21">${s.es}</text><text class="v" x="34" y="-21">${s.ef}</text>`:"")+(v>1?`<text class="v" x="-34" y="30">${s.ls}</text><text class="v" x="34" y="30">${s.lf}</text>`:"")+`</g>`});
+ E.forEach(e=>{const P=e.P,c=rev>2&&tight(e.k,e.j,e.t,e.l);let bi=1,bl=-1;
+  for(let i=1;i<P.length;i++){const L=Math.abs(P[i].x-P[i-1].x)+Math.abs(P[i].y-P[i-1].y);if(L>bl){bl=L;bi=i}}
+  const path=`<path class="edge${c?" c":""}" d="M${P.map(p=>p.x+" "+p.y).join("L")}" marker-end="url(#${c?"ac":"a"})"/>`;
+  c?pc+=path:pa+=path;
+  lb+=`<text class="elab" x="${(P[bi].x+P[bi-1].x)/2}" y="${(P[bi].y+P[bi-1].y)/2-4}">${lab(e)}</text>`});
+ $("#g").innerHTML=DEFS+nodes+pa+pc+lb;
+}
+function fixFS(){const L=W.flatMap(w=>w.p);let o=L.filter(q=>q.t!="FS");while(o.length&&(L.length-o.length)*2<=L.length){const q=o.splice(rnd(0,o.length-1),1)[0];q.t="FS"}}
+function fixEnd(){const n=W.length-1,has=new Set(W.flatMap(w=>w.p.map(q=>q.from)));for(let j=0;j<n;j++)if(!has.has(j)&&!W[n].p.some(q=>q.from==j))W[n].p.push({from:j,t:"FS",l:lag()})}
+function newEx(){gen();fixEnd();fixFS();solve();layout();render()}
+const PH=[null,{f:["es","ef"]},{f:["ls","lf"]},{f:["crit"]}];
+let R={},P=0;
+function btns(){[1,2,3].forEach(k=>{const b=$("#v"+k);b.disabled=k>P+1;b.className=k==P+1?"f":""})}
+function stats(ok,er){$("#s0").textContent=ok+er;$("#s1").textContent=ok;$("#s2").textContent=er;$("#s3").textContent=ok+er?Math.round(100*ok/(ok+er))+"%":"—"}
+function verify(k){
+ let ok=0,er=0;
+ document.querySelectorAll("#tb input").forEach(el=>{
+  const i=+el.dataset.i,f=el.dataset.f;if(el.readOnly||!PH[k].f.includes(f))return;let good;
+  if(f=="crit"){good=el.checked==S[i].crit;el.parentElement.className="cb "+(good?"ok":"err")}
+  else{good=el.value!==""&&+el.value==S[i][f];el.className=good?"ok":"err"}
+  good?ok++:er++});
+ R[k]={ok,er};P=er?k-1:k;btns();
+ const t=Object.values(R).reduce((a,r)=>[a[0]+r.ok,a[1]+r.er],[0,0]);stats(t[0],t[1]);
+ const H=["","Controlla: ES = massimo tra i vincoli dei predecessori (si parte da 1); EF = ES + DUR − 1.","Controlla: LF = fine progetto per i WP finali, poi LS = LF − DUR + 1 e risali ai predecessori.","Un WP è critico quando ES = LS (slack zero)."];
+ const O=["","Passata in avanti corretta! Durata del progetto: "+T+". Ora la passata all’indietro.","Passata all’indietro corretta! Ora individua il percorso critico.","Percorso critico corretto: "+S.map((x,i)=>x.crit?"WP"+(i+1):null).filter(Boolean).join(" → ")+"."];
+ $("#msg").textContent=er?H[k]:O[k];
+}
+let SP=0;
+const SN=["Soluzione forward","Soluzione backward","Soluzione percorso critico"];
+function sbtn(){const b=$("#sol");b.lastElementChild.textContent=SP<3?SN[SP]:"Soluzione completa";b.disabled=SP>=3}
+function solution(){
+ const k=++SP;
+ document.querySelectorAll("#tb input").forEach(el=>{
+  const i=+el.dataset.i,f=el.dataset.f;if(!PH[k].f.includes(f))return;
+  if(f=="crit"){el.checked=S[i].crit;el.parentElement.className="cb"}else{el.value=S[i][f];el.className=el.readOnly?"given":""}});
+ if(k==3)W.forEach((w,i)=>$("#r"+i).className=S[i].crit?"crit":"");
+ rev=k;P=Math.max(P,k);btns();sbtn();drawG();
+ $("#msg").textContent=["Passata in avanti: ES = massimo dei vincoli dei predecessori, EF = ES + DUR − 1. Durata del progetto: "+T+".","Passata all’indietro: si parte da LF = "+T+" per i WP finali, poi LS = LF − DUR + 1.","Percorso critico (ES = LS): "+S.map((x,i)=>x.crit?"WP"+(i+1):null).filter(Boolean).join(" → ")+" · Durata progetto: "+T][k-1];
+}
+let drag=null;const g=$("#g");
+g.addEventListener("pointerdown",e=>{const n=e.target.closest(".node");if(n){drag=+n.dataset.n;g.setPointerCapture(e.pointerId)}});
+g.addEventListener("pointermove",e=>{if(drag===null)return;const pt=g.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const q=pt.matrixTransform(g.getScreenCTM().inverse());pos[drag]={x:Math.max(84,Math.min(1116,Math.round(q.x/12)*12)),y:Math.max(48,Math.min(480,Math.round(q.y/12)*12))};drawG()});
+g.addEventListener("pointerup",()=>drag=null);
+newEx();
+</script>
+</body>
+</html>

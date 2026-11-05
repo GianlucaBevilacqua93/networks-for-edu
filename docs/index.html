@@ -81,6 +81,7 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--ink);min-h
 }
 .banner-routing{background:linear-gradient(135deg,#1557b0,#1a73e8);}
 .banner-dijkstra{background:linear-gradient(135deg,#137333,#34a853);}
+.banner-cpm{background:linear-gradient(135deg,#5b1f99,#7627bb);}
 .banner-rip{
   background:linear-gradient(135deg,#b3261e,#d93025);
 }
@@ -127,6 +128,9 @@ body{font-family:'Roboto',sans-serif;background:var(--bg);color:var(--ink);min-h
   background:var(--red-dk);
   box-shadow:0 4px 12px rgba(217,48,37,.35);
 }
+
+.btn-purple{background:#7627bb;color:#fff;}
+.btn-purple:hover{background:#5b1f99;box-shadow:0 4px 12px rgba(118,39,187,.35);}
 
 /* ── HOW TO USE ── */
 .steps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px;margin-bottom:52px;}
@@ -176,7 +180,7 @@ footer{
 <div class="hero">
   <div class="hero-inner">
     <h1>Strumenti didattici<br>per <span>Sistemi e Reti</span></h1>
-    <p>Simulatori interattivi per la lavagna digitale: esercitati su routing statico e algoritmi di instradamento direttamente nel browser, senza installazioni.</p>
+    <p>Simulatori interattivi per la lavagna digitale: esercitati su routing statico, algoritmi di instradamento e pianificazione di progetto (CPM) direttamente nel browser, senza installazioni.</p>
   </div>
 </div>
 
@@ -245,6 +249,26 @@ footer{
       <div class="tool-card-footer">
         <div class="status"><div class="dot-live"></div> Disponibile</div>
         <a href="rip-simulator.html" class="btn-launch btn-red">
+          <span class="material-icons-round" style="font-size:17px">open_in_new</span>
+          Apri strumento
+        </a>
+      </div>
+    </div>
+
+    <!-- CPM -->
+    <div class="tool-card">
+      <div class="tool-card-banner banner-cpm">
+        <span class="material-icons-round mi">timeline</span>
+      </div>
+      <div class="tool-card-body">
+        <div class="tool-card-title">Simulatore Critical Path Method</div>
+        <div class="tool-card-desc">
+          Genera un progetto casuale di attività (WP) con le sole durate e vincoli <strong>FS, SS, FF, SF</strong>, anche con ritardi o anticipi. Lo studente completa la passata in avanti (ES, EF), quella all'indietro (LS, LF) e individua il <strong>percorso critico</strong>, con verifica e soluzione in tre fasi.
+        </div>
+      </div>
+      <div class="tool-card-footer">
+        <div class="status"><div class="dot-live"></div> Disponibile</div>
+        <a href="cpm-simulator.html" class="btn-launch btn-purple">
           <span class="material-icons-round" style="font-size:17px">open_in_new</span>
           Apri strumento
         </a>
