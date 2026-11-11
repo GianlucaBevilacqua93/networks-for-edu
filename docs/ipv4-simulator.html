@@ -1,0 +1,868 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Reti IP Lavagna</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: barra comandi in alto, elenco slide a sinistra, esercizio al centro, guida e risultati a destra (come una lavagna interattiva) */
+:root {
+  --bg: #e9edf2;
+  --surface: #ffffff;
+  --surface2: #f3f6fa;
+  --ink: #18212d;
+  --mute: #5b6879;
+  --line: #d3dae4;
+  --accent: #1f5fbf;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3edfb;
+  --host: #d4601f;
+  --ok: #1b8553;
+  --ok-soft: #e0f3ea;
+  --bad: #c0392b;
+  --bad-soft: #fbe6e3;
+  --warn: #9a6a00;
+  --warn-soft: #fbf0d3;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11161d; --surface: #1a212b; --surface2: #212a36; --ink: #e5eaf1; --mute: #9aa7b8; --line: #2f3a49;
+    --accent: #6ea4f4; --accent-ink: #0c1626; --accent-soft: #1f2f47; --host: #f29a62;
+    --ok: #4fc08a; --ok-soft: #173326; --bad: #ee7b6e; --bad-soft: #3b1f1c; --warn: #e0b24a; --warn-soft: #382c10;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11161d; --surface: #1a212b; --surface2: #212a36; --ink: #e5eaf1; --mute: #9aa7b8; --line: #2f3a49;
+  --accent: #6ea4f4; --accent-ink: #0c1626; --accent-soft: #1f2f47; --host: #f29a62;
+  --ok: #4fc08a; --ok-soft: #173326; --bad: #ee7b6e; --bad-soft: #3b1f1c; --warn: #e0b24a; --warn-soft: #382c10;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); margin: 0;
+  padding-block: 14px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+code, .mono { font-family: var(--mono); font-weight: 500; }
+code { background: var(--surface2); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; font-size: .92em; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* barra superiore */
+.top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.logo { width: 38px; height: 38px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font: 600 15px var(--mono); letter-spacing: -.02em; flex: none; }
+.brand { min-width: 0; flex: 1 1 220px; }
+.brand h1 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.2; }
+.brand p { margin: 0; color: var(--mute); font-size: 13px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--line); background: var(--surface2); border-radius: 8px; padding: 8px 14px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 7px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.ghost { background: transparent; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn svg { width: 16px; height: 16px; flex: none; }
+
+/* struttura a tre colonne */
+.shell { display: grid; grid-template-columns: 214px minmax(0, 1fr) 300px; gap: 14px; margin-top: 14px; align-items: start; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.rail { padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+.rail h2, .side h2 { font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--mute); font-weight: 600; margin: 6px 8px 6px; }
+.slide-btn { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; text-align: left; padding: 8px 10px; border-radius: 7px; cursor: pointer; font-size: 14px; line-height: 1.25; }
+.slide-btn:hover { background: var(--surface2); }
+.slide-btn[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.slide-btn .num { font: 500 12px var(--mono); color: var(--mute); width: 20px; flex: none; }
+.slide-btn .lbl { flex: 1; min-width: 0; }
+.dotst { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--line); flex: none; }
+.dotst.ok { background: var(--ok); border-color: var(--ok); }
+.dotst.bad { background: var(--bad); border-color: var(--bad); }
+.dotst.seen { background: var(--warn); border-color: var(--warn); }
+
+/* esercizio */
+.stage { padding: 22px 24px 20px; min-width: 0; }
+.eyebrow { font: 600 12px var(--mono); color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
+.stage h2 { margin: 4px 0 10px; font-size: 24px; line-height: 1.2; font-weight: 600; text-wrap: balance; }
+.task { margin: 0 0 16px; max-width: 68ch; font-size: 16px; }
+.given { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
+.gitem { background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; display: flex; flex-direction: column; min-width: 0; }
+.gk { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); font-weight: 600; }
+.gv { font: 600 20px var(--mono); overflow-wrap: anywhere; }
+.gv em { font-style: normal; color: var(--accent); }
+.ipbig { font: 600 clamp(26px, 5vw, 40px) var(--mono); background: var(--surface2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 20px; margin: 0 0 18px; display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
+.ipbig .vs { color: var(--accent); font-size: .6em; margin-left: 8px; }
+.fields { display: flex; flex-wrap: wrap; gap: 14px 18px; }
+.fld { display: flex; flex-direction: column; gap: 6px; min-width: min(100%, 220px); flex: 1 1 220px; max-width: 360px; }
+.flabel { font-size: 13px; font-weight: 600; color: var(--mute); }
+.inp { font: 600 18px var(--mono); padding: 10px 12px; border: 2px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; min-width: 0; }
+.inp::placeholder { color: var(--mute); opacity: .55; font-weight: 500; }
+.inp:focus { border-color: var(--accent); outline: none; }
+.choices { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { border: 2px solid var(--line); background: var(--bg); border-radius: 8px; padding: 9px 16px; font-weight: 600; cursor: pointer; }
+.chip:hover { border-color: var(--accent); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.fstate { font-size: 13px; font-weight: 600; min-height: 20px; }
+.fld.ok .inp, .fld.ok .chip.on { border-color: var(--ok); }
+.fld.ok .chip.on { background: var(--ok); color: #fff; }
+.fld.ok .fstate { color: var(--ok); }
+.fld.bad .inp, .fld.bad .chip.on { border-color: var(--bad); }
+.fld.bad .chip.on { background: var(--bad); color: #fff; }
+.fld.bad .fstate { color: var(--bad); }
+.fld.empty .fstate { color: var(--warn); }
+.nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+
+/* soluzione */
+.sol { margin-top: 20px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: 16px 18px; background: var(--surface2); }
+.sol h3 { margin: 0 0 8px; font-size: 15px; }
+.sol p { margin: 8px 0; max-width: 70ch; }
+.answers { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 4px 0 10px; }
+.answers div { display: flex; flex-direction: column; }
+.answers span { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); font-weight: 600; }
+.answers strong { font: 600 18px var(--mono); color: var(--ok); }
+.brow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 5px 0; }
+.bl { width: 84px; font-size: 12px; font-weight: 600; color: var(--mute); flex: none; }
+.bits { font: 600 14px var(--mono); display: inline-flex; flex-wrap: wrap; align-items: center; letter-spacing: .02em; }
+.bits b { font-weight: 600; }
+.bits .dot { font-style: normal; color: var(--mute); padding: 0 2px; }
+b.n { color: var(--accent); }
+b.h { color: var(--host); }
+.bd { font: 500 13px var(--mono); color: var(--mute); }
+.legend { font-size: 13px; color: var(--mute); margin: 8px 0 4px; }
+.legend b { font: 600 13px var(--mono); margin: 0 2px 0 8px; }
+.legend b:first-child { margin-left: 0; }
+table.mini { border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+table.mini th, table.mini td { border: 1px solid var(--line); padding: 4px 10px; text-align: left; }
+table.mini th { background: var(--surface); color: var(--mute); font-weight: 600; }
+.tablewrap { overflow-x: auto; max-width: 100%; }
+.nid { color: var(--accent); }
+.hid { color: var(--host); }
+.idv { font: 700 18px var(--mono); overflow-wrap: anywhere; }
+
+/* colonna destra */
+.side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.side .panel { padding: 14px 16px; }
+.side h2 { margin: 0 0 8px; }
+.how { margin: 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4px; }
+.res { width: 100%; border-collapse: collapse; font-size: 14px; }
+.res th { text-align: left; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); padding: 0 0 6px; }
+.res td { padding: 6px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.res td:last-child { text-align: right; font-weight: 700; width: 28px; }
+.res .ans { font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+.res .okc { color: var(--ok); } .res .badc { color: var(--bad); } .res .dash { color: var(--mute); }
+.tally { display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 14px; }
+.tally strong { font-family: var(--mono); }
+.note { font-size: 13px; background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 10px 12px; }
+
+/* finestra di conferma */
+.veil { position: fixed; inset: 0; background: rgba(8, 12, 18, .55); display: grid; place-items: center; padding: 16px; z-index: 20; }
+.dialog { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; max-width: 420px; width: 100%; }
+.dialog h3 { margin: 0 0 6px; font-size: 18px; }
+.dialog p { margin: 0 0 18px; color: var(--mute); }
+.dialog .row { display: flex; justify-content: flex-end; gap: 8px; }
+
+@media (max-width: 1060px) {
+  .shell { grid-template-columns: minmax(0, 1fr) 280px; }
+  .rail { grid-column: 1 / -1; flex-direction: row; overflow-x: auto; }
+  .rail h2 { display: none; }
+  .slide-btn { flex: none; white-space: nowrap; }
+}
+@media (max-width: 760px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .stage { padding: 16px; }
+  .stage h2 { font-size: 21px; }
+  .bl { width: 100%; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .stage { animation: rise .25s ease-out; }
+  @keyframes rise { from { opacity: .4; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+}
+</style>
+
+<div class="top">
+  <div class="logo" aria-hidden="true">IP</div>
+  <div class="brand">
+    <h1>Reti IP — Lavagna Interattiva</h1>
+    <p>Esercizi di indirizzamento IPv4 sugli argomenti delle dispense 1–5, generati a caso a ogni caricamento</p>
+  </div>
+  <div class="actions">
+    <button class="btn" id="bNew" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>Nuovo esercizio</button>
+    <button class="btn primary" id="bCheck" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>Verifica</button>
+    <button class="btn" id="bSol" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>Soluzione</button>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="panel rail" id="rail" aria-label="Slide degli esercizi"></nav>
+  <main class="panel stage" id="stage" aria-live="polite"></main>
+  <aside class="side">
+    <section class="panel">
+      <h2>Come funziona</h2>
+      <ol class="how">
+        <li>Leggi i dati dell’esercizio.</li>
+        <li>Scrivi le risposte; gli indirizzi in forma <code>a.b.c.d</code>.</li>
+        <li><strong>Verifica</strong> controlla ogni campo.</li>
+        <li><strong>Soluzione</strong> mostra i passaggi in binario.</li>
+        <li><strong>Nuovo esercizio</strong> estrae altri valori; la pagina ne propone di nuovi anche a ogni refresh.</li>
+      </ol>
+    </section>
+    <section class="panel">
+      <h2>Risultati verifica</h2>
+      <div id="results"></div>
+      <div class="tally"><span>Esercizi corretti</span><strong id="tally">0</strong></div>
+    </section>
+    <div class="note"><strong>Nota:</strong> questa applicazione potrebbe presentare errori. In caso di dubbi, fai uno screenshot e discutine con il docente in classe.</div>
+  </aside>
+</div>
+
+<div class="veil" id="veil" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgT">
+    <h3 id="dlgT">Mostrare la soluzione?</h3>
+    <p>Verranno mostrati i risultati corretti e i passaggi. Potrai sempre generare un nuovo esercizio.</p>
+    <div class="row">
+      <button class="btn ghost" id="dlgNo" type="button">Annulla</button>
+      <button class="btn primary" id="dlgYes" type="button">Mostra</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== Logica degli esercizi (nessun accesso al DOM) =====
+   Argomenti ammessi (solo dispense 1-5): formato IP 0-255, univocità in LAN, NET-ID/HOST-ID,
+   maschere /8 /16 /24, CIDR e 2^h - 2, classi A/B/C, rete, broadcast, primo/ultimo host,
+   falsi broadcast, indirizzi speciali, privati/pubblici, switch concatenati. */
+const rnd = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const fromOct = (a, b, c, d) => ((a * 256 + b) * 256 + c) * 256 + d;
+const octs = n => [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
+const toIp = n => octs(n).join('.');
+const parseIp = s => {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(String(s).trim());
+  if (!m) return null;
+  const o = m.slice(1).map(Number);
+  return o.some(x => x > 255) ? null : fromOct(o[0], o[1], o[2], o[3]);
+};
+const parseNum = s => {
+  const t = String(s).replace(/[\s.'’]/g, '');
+  return /^\d+$/.test(t) ? Number(t) : null;
+};
+const parsePrefix = s => {
+  const t = String(s).trim().replace(/^\//, '');
+  return /^\d{1,2}$/.test(t) ? Number(t) : null;
+};
+const maskOf = p => (p === 0 ? 0 : (0xFFFFFFFF << (32 - p)) >>> 0);
+const netOf = (ip, p) => (ip & maskOf(p)) >>> 0;
+const bcastOf = (ip, p) => (netOf(ip, p) | ~maskOf(p)) >>> 0;
+const fmtN = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+/* classi come nelle dispense (si generano solo 1-126 per la A: 0 e 127 sono indirizzi speciali) */
+const CLS = {
+  A: { lo: 1, hi: 126, p: 8, max: 16777214, mask: '255.0.0.0' },
+  B: { lo: 128, hi: 191, p: 16, max: 65534, mask: '255.255.0.0' },
+  C: { lo: 192, hi: 223, p: 24, max: 254, mask: '255.255.255.0' }
+};
+const RNG = { A: '0 .. 127', B: '128 .. 191', C: '192 .. 223' };
+const classOf = f => (f <= 127 ? 'A' : f <= 191 ? 'B' : 'C');
+const isPrivate = ip => {
+  const [a, b] = octs(ip);
+  return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+};
+const hostOct = () => rnd(1, 254);
+const mkIp = (cls, net) => {
+  const o = net.slice(0, CLS[cls].p / 8);
+  while (o.length < 4) o.push(hostOct());
+  return fromOct(o[0], o[1], o[2], o[3]);
+};
+const randPriv = cls => mkIp(cls, cls === 'A' ? [10] : cls === 'B' ? [172, rnd(16, 31)] : [192, 168, rnd(0, 255)]);
+const randPublic = cls => {
+  for (;;) {
+    const f = rnd(CLS[cls].lo, CLS[cls].hi);
+    const net = cls === 'A' ? [f] : cls === 'B' ? [f, rnd(0, 255)] : [f, rnd(0, 255), rnd(0, 255)];
+    const ip = mkIp(cls, net);
+    if (!isPrivate(ip) && !(f === 169 && net[1] === 254)) return ip;
+  }
+};
+const randAny = cls => (Math.random() < 0.45 ? randPriv(cls) : randPublic(cls));
+const pickCls = () => pick(['A', 'B', 'C', 'B', 'C']);
+
+/* ---- elementi grafici delle soluzioni ---- */
+const bitsHtml = (n, p) => {
+  let h = '';
+  for (let i = 0; i < 32; i++) {
+    if (i && i % 8 === 0) h += '<i class="dot">.</i>';
+    h += `<b class="${i < p ? 'n' : 'h'}">${(n >>> (31 - i)) & 1}</b>`;
+  }
+  return h;
+};
+const bRow = (label, n, p) =>
+  `<div class="brow"><span class="bl">${label}</span><span class="bits">${bitsHtml(n, p)}</span><span class="bd">${toIp(n)}</span></div>`;
+const legend = p =>
+  `<p class="legend"><b class="n">1</b> bit di NET-ID (${p}) <b class="h">0</b> bit di HOST-ID (${32 - p})</p>`;
+const idHtml = (ip, p) => {
+  const o = octs(ip), k = p / 8;
+  return `<span class="nid">${o.slice(0, k).join('.')}</span><span class="hid">${o.slice(k).map(x => '.' + x).join('')}</span>`;
+};
+const idRow = (label, ip, p) =>
+  `<div class="brow"><span class="bl">${label}</span><span class="idv">${idHtml(ip, p)}</span></div>`;
+const hostDec = (p, v) => Array(4 - p / 8).fill(v).map(x => '.' + x).join('');
+const hostBits = (p, b) => Array(4 - p / 8).fill(String(b).repeat(8)).map(s => '.' + s).join('');
+const ott = n => (n === 1 ? 'ottetto' : 'ottetti');
+const idLegend = p =>
+  `<p class="legend"><b class="n">NET-ID</b> ${p} bit (primi ${p / 8} ${ott(p / 8)}) <b class="h">HOST-ID</b> ${32 - p} bit (ultimi ${4 - p / 8} ${ott(4 - p / 8)})</p>`;
+const givenHost = (ip, p, label) =>
+  `<div class="gitem"><span class="gk">${label || 'Indirizzo host'}</span><span class="gv">${toIp(ip)} <em>/${p}</em></span></div>`;
+const givenIp = (ip, p) =>
+  `<div class="given">${givenHost(ip, p)}<div class="gitem"><span class="gk">Maschera</span><span class="gv">${toIp(maskOf(p))}</span></div></div>`;
+const classTable =
+  `<table class="mini"><tr><th>Classe</th><th>1° numero</th><th>NET-ID + HOST-ID</th><th>CIDR</th><th>Max host (2<sup>n</sup> − 2)</th></tr>` +
+  `<tr><td>A</td><td>0 .. 127</td><td>8 + 24</td><td>/8 (255.0.0.0)</td><td>2<sup>24</sup> − 2 = 16.777.214</td></tr>` +
+  `<tr><td>B</td><td>128 .. 191</td><td>16 + 16</td><td>/16 (255.255.0.0)</td><td>2<sup>16</sup> − 2 = 65.534</td></tr>` +
+  `<tr><td>C</td><td>192 .. 223</td><td>24 + 8</td><td>/24 (255.255.255.0)</td><td>2<sup>8</sup> − 2 = 254</td></tr></table>`;
+
+const OPT_ABC = ['A', 'B', 'C'].map(c => ({ v: c, t: 'Classe ' + c }));
+const OPT_VF = [{ v: 'V', t: 'Vero' }, { v: 'F', t: 'Falso' }];
+
+/* ============ SLIDE ============ */
+const SLIDES = [
+  /* 1 — formato dell'indirizzo */
+  {
+    key: 'valido', title: 'Validità dell’indirizzo IP',
+    gen() {
+      const o = [rnd(1, 223), rnd(0, 255), rnd(0, 255), rnd(0, 255)].map(String);
+      const bad = Math.random() < 0.6 ? rnd(0, 3) : -1;
+      if (bad >= 0) o[bad] = String(Math.random() < 0.25 ? rnd(1000, 1999) : rnd(256, 999));
+      return {
+        task: 'Un indirizzo IP è formato da <strong>4 numeri separati da un punto</strong>. L’indirizzo seguente è corretto? Se è errato, indica il blocco fuori scala.',
+        given: `<div class="ipbig">${o.join('.')}</div>`,
+        fields: [
+          { id: 'v', label: 'Validità', kind: 'choice', options: [{ v: 'V', t: 'Corretto' }, { v: 'F', t: 'Errato' }] },
+          { id: 'b', label: 'Blocco fuori scala', kind: 'choice', options: [{ v: '0', t: 'Nessuno' }, { v: '1', t: '1° blocco' }, { v: '2', t: '2° blocco' }, { v: '3', t: '3° blocco' }, { v: '4', t: '4° blocco' }] }
+        ],
+        exp: { v: bad < 0 ? 'V' : 'F', b: String(bad + 1) },
+        solution: bad >= 0
+          ? `<p>Ciascun blocco deve essere compreso tra <code>0</code> e <code>255</code>. Il <strong>${bad + 1}° blocco</strong> vale <code>${o[bad]}</code> e supera il massimo consentito di <code>255</code>: l’indirizzo è <strong>errato</strong> e non può esistere.</p>`
+          : `<p>Tutti e quattro i numeri sono compresi tra <code>0</code> e <code>255</code>: l’indirizzo è <strong>corretto</strong>.</p>`
+      };
+    }
+  },
+  /* 2 — univocità */
+  {
+    key: 'univoco', title: 'Univocità in una LAN',
+    gen() {
+      const x = rnd(0, 255);
+      const hs = [];
+      while (hs.length < 3) { const h = rnd(1, 254); if (!hs.includes(h)) hs.push(h); }
+      let exp = 'none', i = 0, j = 0;
+      if (Math.random() < 0.5) { [i, j] = pick([[0, 1], [0, 2], [1, 2]]); hs[j] = hs[i]; exp = '' + i + j; }
+      const ips = hs.map(h => `192.168.${x}.${h}`);
+      return {
+        task: 'I tre PC sono collegati alla stessa LAN. Si genera un <strong>conflitto di indirizzi IP</strong>? Se sì, tra quali PC?',
+        given: `<div class="given"><div class="gitem"><span class="gk">LAN</span><span class="gv">192.168.${x}.0 <em>/24</em></span></div>` +
+          ips.map((ip, n) => `<div class="gitem"><span class="gk">PC${n + 1}</span><span class="gv">${ip}</span></div>`).join('') + `</div>`,
+        fields: [{ id: 'c', label: 'Conflitto', kind: 'choice', options: [{ v: 'none', t: 'Nessun conflitto' }, { v: '01', t: 'PC1 e PC2' }, { v: '02', t: 'PC1 e PC3' }, { v: '12', t: 'PC2 e PC3' }] }],
+        exp: { c: exp },
+        solution: `<p>In una stessa LAN ogni dispositivo deve avere un indirizzo IP <strong>unico</strong>.</p>` +
+          (exp === 'none'
+            ? `<p>La parte RETE <code>192.168.${x}</code> è uguale per tutti e la parte HOST è diversa (<code>.${hs[0]}</code>, <code>.${hs[1]}</code>, <code>.${hs[2]}</code>): <strong>nessun conflitto</strong>.</p>`
+            : `<p>PC${i + 1} e PC${j + 1} hanno lo stesso indirizzo <code>${ips[i]}</code>: l’indirizzo è <em>già presente</em> e si genera un <strong>conflitto</strong>.</p>`)
+      };
+    }
+  },
+  /* 3 — classe */
+  {
+    key: 'classe', title: 'Classe dell’indirizzo',
+    gen() {
+      const cls = pickCls(), ip = randAny(cls), f = ip >>> 24, c = CLS[cls];
+      return {
+        task: 'A quale classe appartiene l’indirizzo e qual è il <strong>prefisso CIDR standard</strong> della sua classe?',
+        given: `<div class="ipbig">${toIp(ip)}</div>`,
+        fields: [
+          { id: 'c', label: 'Classe', kind: 'choice', options: OPT_ABC },
+          { id: 'p', label: 'Prefisso standard', kind: 'prefix', placeholder: '/24' }
+        ],
+        exp: { c: cls, p: c.p },
+        solution: `<p>Si guarda il <strong>primo numero</strong>: <code>${f}</code>. Rientra nell’intervallo <code>${RNG[cls]}</code>, quindi è di <strong>classe ${cls}</strong>: NET-ID ${c.p} bit + HOST-ID ${32 - c.p} bit, prefisso <code>/${c.p}</code> (<code>${c.mask}</code>).</p>` + `<div class="tablewrap">${classTable}</div>`
+      };
+    }
+  },
+  /* 4 — appartenenza a una classe */
+  {
+    key: 'appartenenza', title: 'Appartenenza a una classe',
+    gen() {
+      const cls = pickCls(), ip = randAny(cls), f = ip >>> 24;
+      const mode = pick(['ok', 'ok', 'classe', 'prefisso']);
+      let claimed = cls, p = CLS[cls].p;
+      if (mode === 'classe') claimed = pick(['A', 'B', 'C'].filter(x => x !== cls));
+      if (mode === 'prefisso') p = pick([8, 16, 24].filter(x => x !== CLS[cls].p));
+      const truth = claimed === cls && p === CLS[cls].p;
+      return {
+        task: `Vero o falso? L’indirizzo è di <strong>classe ${claimed}</strong> e usa il <strong>prefisso standard</strong> di quella classe.`,
+        given: `<div class="ipbig">${toIp(ip)} /${p} <span class="vs">∈ classe ${claimed} ?</span></div>`,
+        fields: [{ id: 'v', label: 'Affermazione', kind: 'choice', options: OPT_VF }],
+        exp: { v: truth ? 'V' : 'F' },
+        solution: `<p>Il primo numero è <code>${f}</code> (intervallo <code>${RNG[cls]}</code>): l’indirizzo è di <strong>classe ${cls}</strong>, il cui prefisso standard è <code>/${CLS[cls].p}</code>.</p>` +
+          (claimed !== cls ? `<p>Si afferma classe ${claimed}, ma il primo numero non rientra in <code>${RNG[claimed]}</code>.</p>` : '') +
+          (p !== CLS[cls].p ? `<p>Il prefisso indicato è <code>/${p}</code>, diverso da <code>/${CLS[cls].p}</code>: il NET-ID è di ${p} bit e l’HOST-ID di ${32 - p} bit, quindi non vale la ripartizione standard della classe.</p>` : '') +
+          `<p>L’affermazione è <strong>${truth ? 'vera' : 'falsa'}</strong>.</p>`
+      };
+    }
+  },
+  /* 5 — notazione della maschera */
+  {
+    key: 'maschera', title: 'Notazione CIDR e maschera',
+    gen() {
+      const p = pick([8, 16, 24]), m = maskOf(p), toDotted = Math.random() < 0.5;
+      return {
+        task: toDotted ? 'Scrivi la maschera in <strong>notazione decimale</strong>.' : 'Scrivi la maschera in <strong>notazione CIDR</strong> (/n).',
+        given: `<div class="ipbig">${toDotted ? '/' + p : toIp(m)}</div>`,
+        fields: toDotted ? [{ id: 'm', label: 'Maschera decimale', kind: 'ip', placeholder: '255.255.255.0' }] : [{ id: 'p', label: 'Prefisso CIDR', kind: 'prefix', placeholder: '/24' }],
+        exp: toDotted ? { m } : { p },
+        solution: `<p>Il suffisso <code>/${p}</code> indica che i primi <strong>${p} bit</strong> sono a <code>1</code> (parte RETE) e gli ultimi <strong>${32 - p} bit</strong> sono a <code>0</code> (parte HOST).</p>` + legend(p) + bRow('Maschera', m, p) +
+          `<p>Un ottetto tutto a 1 vale <code>255</code>, un ottetto tutto a 0 vale <code>0</code>.</p>`
+      };
+    }
+  },
+  /* 6 — CIDR e numero di host */
+  {
+    key: 'cidr', title: 'Bit di rete, bit di host e host',
+    gen() {
+      const n = pick([8, 16, 24]);
+      const h = 32 - n, tot = 2 ** h;
+      return {
+        task: 'Una rete usa la notazione CIDR indicata. Quanti bit formano il <strong>NET-ID</strong> e l’<strong>HOST-ID</strong>? Quanti <strong>host</strong> si possono assegnare ai PC?',
+        given: `<div class="ipbig">/${n}</div>`,
+        fields: [
+          { id: 'nb', label: 'Bit di NET-ID', kind: 'num', placeholder: 'es. 24' },
+          { id: 'hb', label: 'Bit di HOST-ID', kind: 'num', placeholder: 'es. 8' },
+          { id: 'h', label: 'Host assegnabili', kind: 'num', placeholder: 'es. 254' }
+        ],
+        exp: { nb: n, hb: h, h: tot - 2 },
+        solution: `<p>La notazione <code>/${n}</code> indica ${n} bit di NET-ID; i restanti <code>32 − ${n} = ${h}</code> bit sono HOST-ID.</p>` +
+          `<p>Con ${h} bit di HOST-ID si ottengono <code>2<sup>${h}</sup> = ${fmtN(tot)}</code> combinazioni. Sottraendo i 2 indirizzi riservati (<code>0</code> = RETE e tutti 1 = BROADCAST) restano <code>2<sup>${h}</sup> − 2 = ${fmtN(tot - 2)}</code> host.</p>` +
+          legend(n) + bRow('Maschera', maskOf(n), n)
+      };
+    }
+  },
+  /* 7 — stessa rete */
+  {
+    key: 'stessa', title: 'Appartenenza alla stessa LAN',
+    gen() {
+      const cls = pickCls(), p = CLS[cls].p, k = p / 8;
+      const ip1 = randAny(cls), o1 = octs(ip1), o2 = o1.slice();
+      const same = Math.random() < 0.5;
+      if (same) {
+        do { for (let i = k; i < 4; i++) o2[i] = hostOct(); } while (o2.slice(k).join() === o1.slice(k).join());
+      } else {
+        const idx = Math.random() < 0.7 ? k - 1 : rnd(0, k - 1);
+        const lo = idx === 0 ? CLS[cls].lo : 0, hi = idx === 0 ? CLS[cls].hi : 255;
+        do { o2[idx] = rnd(lo, hi); } while (o2[idx] === o1[idx]);
+        for (let i = k; i < 4; i++) o2[i] = Math.random() < 0.4 ? o1[i] : hostOct();
+      }
+      const ip2 = fromOct(o2[0], o2[1], o2[2], o2[3]);
+      const n1 = netOf(ip1, p), n2 = netOf(ip2, p);
+      return {
+        task: 'Due dispositivi appartengono alla <strong>stessa LAN</strong> solo se hanno lo stesso identico NET-ID. Scrivi l’indirizzo di rete di ciascun host e stabilisci se sono nella stessa LAN.',
+        given: `<div class="given">${givenHost(ip1, p, 'PC1')}${givenHost(ip2, p, 'PC2')}</div>`,
+        fields: [
+          { id: 'n1', label: 'Rete di PC1', kind: 'ip', placeholder: '0.0.0.0' },
+          { id: 'n2', label: 'Rete di PC2', kind: 'ip', placeholder: '0.0.0.0' },
+          { id: 's', label: 'Stessa LAN?', kind: 'choice', options: [{ v: 'S', t: 'Sì' }, { v: 'N', t: 'No' }] }
+        ],
+        exp: { n1, n2, s: n1 === n2 ? 'S' : 'N' },
+        solution: `<p>Con prefisso <code>/${p}</code> il NET-ID è formato dai primi ${k} ${ott(k)}. L’indirizzo di rete si ottiene ponendo a 0 la parte HOST.</p>` + idLegend(p) +
+          idRow('PC1', ip1, p) + idRow('Rete 1', n1, p) + idRow('PC2', ip2, p) + idRow('Rete 2', n2, p) +
+          (n1 === n2
+            ? `<p>I due NET-ID coincidono (<code>${o1.slice(0, k).join('.')}</code>): PC1 e PC2 sono nella <strong>stessa LAN</strong>.</p>`
+            : `<p>I NET-ID sono diversi (<code>${o1.slice(0, k).join('.')}</code> e <code>${o2.slice(0, k).join('.')}</code>): PC2 appartiene a un’<strong>altra LAN</strong> e non riceve il broadcast di PC1.</p>`)
+      };
+    }
+  },
+  /* 8 — indirizzo di rete */
+  {
+    key: 'rete', title: 'Indirizzo di rete',
+    gen() {
+      const cls = pickCls(), p = CLS[cls].p, ip = randAny(cls), n = netOf(ip, p);
+      return {
+        task: 'Determina l’<strong>indirizzo di rete</strong> a cui appartiene l’host.',
+        given: givenIp(ip, p),
+        fields: [{ id: 'net', label: 'Indirizzo di rete', kind: 'ip', placeholder: '0.0.0.0' }],
+        exp: { net: n },
+        solution: `<p>Con prefisso <code>/${p}</code> l’HOST-ID occupa gli ultimi ${4 - p / 8} ${ott(4 - p / 8)} (${32 - p} bit). Per l’<strong>indirizzo di rete</strong> si pongono a <strong>0</strong> tutti i bit dell’HOST-ID: <code>${hostBits(p, 0)}</code> = <code>${hostDec(p, 0)}</code>.</p>` +
+          idLegend(p) + idRow('Host', ip, p) + idRow('Rete', n, p)
+      };
+    }
+  },
+  /* 9 — broadcast */
+  {
+    key: 'broadcast', title: 'Indirizzo di broadcast',
+    gen() {
+      const cls = pickCls(), p = CLS[cls].p, ip = randAny(cls), b = bcastOf(ip, p);
+      return {
+        task: 'Determina l’<strong>indirizzo di broadcast</strong> della rete a cui appartiene l’host.',
+        given: givenIp(ip, p),
+        fields: [{ id: 'bc', label: 'Indirizzo di broadcast', kind: 'ip', placeholder: '0.0.0.0' }],
+        exp: { bc: b },
+        solution: `<p>Per il <strong>broadcast</strong> si pongono a <strong>1</strong> tutti i bit dell’HOST-ID (gli ultimi ${4 - p / 8} ${ott(4 - p / 8)}): <code>${hostBits(p, 1)}</code> = <code>${hostDec(p, 255)}</code>.</p>` +
+          idLegend(p) + idRow('Host', ip, p) + idRow('Broadcast', b, p)
+      };
+    }
+  },
+  /* 10 — piano di indirizzamento */
+  {
+    key: 'piano', title: 'Piano di indirizzamento',
+    gen() {
+      const cls = pickCls(), p = CLS[cls].p, ip = randAny(cls), n = netOf(ip, p), b = bcastOf(ip, p);
+      return {
+        task: 'Completa il <strong>piano di indirizzamento</strong> della rete: indirizzo di rete, primo host, ultimo host e indirizzo di broadcast.',
+        given: givenIp(ip, p),
+        fields: [
+          { id: 'n', label: 'Indirizzo di rete', kind: 'ip', placeholder: '0.0.0.0' },
+          { id: 'f', label: 'Primo host', kind: 'ip', placeholder: '0.0.0.0' },
+          { id: 'l', label: 'Ultimo host', kind: 'ip', placeholder: '0.0.0.0' },
+          { id: 'b', label: 'Indirizzo di broadcast', kind: 'ip', placeholder: '0.0.0.0' }
+        ],
+        exp: { n, f: n + 1, l: b - 1, b },
+        solution: `<p>HOST-ID tutto a 0 → rete; tutto a 1 → broadcast. Il primo host è <strong>rete + 1</strong>, l’ultimo è <strong>broadcast − 1</strong>.</p>` + idLegend(p) +
+          idRow('Rete', n, p) + idRow('Primo host', n + 1, p) + idRow('Ultimo host', b - 1, p) + idRow('Broadcast', b, p)
+      };
+    }
+  },
+  /* 11 — rete, broadcast o host (falsi broadcast) */
+  {
+    key: 'tipo', title: 'Rete, broadcast o host valido?',
+    gen() {
+      const cls = pick(['A', 'B', 'B', 'C']), p = CLS[cls].p, k = p / 8, hk = 4 - k;
+      const base = octs(randAny(cls));
+      let kind = pick(['rete', 'bcast', 'host', 'host', 'falso', 'falso']);
+      if (kind === 'falso' && hk < 2) kind = 'host';
+      let h;
+      if (kind === 'rete') h = Array(hk).fill(0);
+      else if (kind === 'bcast') h = Array(hk).fill(255);
+      else if (kind === 'host') h = Array(hk).fill(0).map(() => hostOct());
+      else {
+        do { h = Array(hk).fill(0).map(() => pick([0, 255, hostOct()])); }
+        while (h.every(x => x === 0) || h.every(x => x === 255) || !h.some(x => x === 0 || x === 255));
+      }
+      const o = base.slice(0, k).concat(h);
+      const t = h.every(x => x === 0) ? 'rete' : h.every(x => x === 255) ? 'bcast' : 'host';
+      return {
+        task: 'Che ruolo ha l’indirizzo nella rete indicata dal prefisso?',
+        given: `<div class="ipbig">${o.join('.')} <span class="vs">/${p}</span></div>`,
+        fields: [{ id: 't', label: 'Ruolo dell’indirizzo', kind: 'choice', options: [{ v: 'rete', t: 'Indirizzo di rete' }, { v: 'bcast', t: 'Broadcast di rete' }, { v: 'host', t: 'Host valido' }] }],
+        exp: { t },
+        solution: `<p>Con prefisso <code>/${p}</code> l’HOST-ID è formato dagli ultimi ${hk} ${ott(hk)} (${32 - p} bit): <code>${h.map(x => '.' + x).join('')}</code>.</p>` +
+          (t === 'rete' ? `<p>Tutti i bit dell’HOST-ID sono a <strong>0</strong>: è l’<strong>indirizzo di rete</strong>.</p>`
+            : t === 'bcast' ? `<p>Tutti i bit dell’HOST-ID sono a <strong>1</strong> (ogni ottetto host vale 255): è il <strong>broadcast di rete</strong>.</p>`
+              : `<p>I bit dell’HOST-ID non sono né tutti a 0 né tutti a 1${h.some(x => x === 0 || x === 255) ? `: anche se compare un <code>255</code> o uno <code>0</code>, basta un solo bit diverso perché l’indirizzo non sia né rete né broadcast` : ''}. È un normale <strong>host valido</strong>.</p>`)
+      };
+    }
+  },
+  /* 12 — indirizzi speciali */
+  {
+    key: 'speciali', title: 'Indirizzi speciali',
+    gen() {
+      const item = pick([
+        { ip: '0.0.0.0', a: 'D' }, { ip: '255.255.255.255', a: 'B' }, { ip: '127.0.0.1', a: 'L' },
+        { ip: '127.' + rnd(0, 255) + '.' + rnd(0, 255) + '.' + rnd(1, 254), a: 'L' }
+      ]);
+      const expl = {
+        D: `<p><code>0.0.0.0</code> ha tutti i <strong>32 bit a 0</strong>: è la <strong>Default Route</strong> (instradamento predefinito verso qualsiasi rete esterna) oppure un host che non ha ancora un IP configurato.</p>`,
+        B: `<p><code>255.255.255.255</code> ha tutti i <strong>32 bit a 1</strong>: è il <strong>Limited Broadcast</strong>, invia un pacchetto a tutti gli host della LAN corrente senza conoscere il NET-ID.</p>`,
+        L: `<p>La rete <code>127.x.x.x</code> è riservata al <strong>Loopback</strong> (<code>127.0.0.1</code> = “me stesso”, localhost). Il pacchetto non scende al Livello 2 e non esce dalla scheda di rete.</p>`
+      };
+      return {
+        task: 'Quale indirizzo IPv4 speciale è questo?',
+        given: `<div class="ipbig">${item.ip}</div>`,
+        fields: [{ id: 'a', label: 'Nome tecnico', kind: 'choice', options: [{ v: 'D', t: 'Default Route' }, { v: 'B', t: 'Limited Broadcast' }, { v: 'L', t: 'Loopback' }] }],
+        exp: { a: item.a },
+        solution: expl[item.a]
+      };
+    }
+  },
+  /* 13 — privato o pubblico */
+  {
+    key: 'privpub', title: 'Indirizzo privato o pubblico',
+    gen() {
+      const cls = pick(['A', 'B', 'C']), priv = Math.random() < 0.5;
+      let ip;
+      if (priv) ip = randPriv(cls);
+      else if (Math.random() < 0.5) {
+        ip = mkIp(cls, cls === 'A' ? [pick([1, 5, 53, 100, 120, 126])]
+          : cls === 'B' ? [172, pick([rnd(0, 15), rnd(32, 255)])] : [192, pick([rnd(0, 167), rnd(169, 255)]), rnd(0, 255)]);
+      } else ip = randPublic(cls);
+      const p = CLS[cls].p, o = octs(ip);
+      return {
+        task: 'L’indirizzo è <strong>privato</strong> (usabile solo in LAN) o <strong>pubblico</strong> (univoco su Internet)? Indica anche la sua classe.',
+        given: `<div class="ipbig">${toIp(ip)} <span class="vs">/${p}</span></div>`,
+        fields: [
+          { id: 'c', label: 'Classe', kind: 'choice', options: OPT_ABC },
+          { id: 't', label: 'Tipo', kind: 'choice', options: [{ v: 'R', t: 'Privato' }, { v: 'U', t: 'Pubblico' }] }
+        ],
+        exp: { c: cls, t: isPrivate(ip) ? 'R' : 'U' },
+        solution: `<p>Il primo numero <code>${o[0]}</code> è nell’intervallo <code>${RNG[cls]}</code>: <strong>classe ${cls}</strong>.</p>` +
+          (cls === 'A' ? `<p>In classe A l’unico blocco privato è <code>10.x.x.x</code>: qui il primo numero ${o[0] === 10 ? 'è 10' : 'è ' + o[0] + ', diverso da 10'}.</p>`
+            : cls === 'B' ? `<p>In classe B i privati hanno il 1° numero <code>172</code> e il 2° tra <code>16</code> e <code>31</code>: qui ${o[0] !== 172 ? 'il 1° numero non è 172' : 'il 2° numero è ' + o[1] + (isPrivate(ip) ? ', compreso tra 16 e 31' : ', fuori da 16 .. 31')}.</p>`
+              : `<p>In classe C i privati iniziano con <code>192.168</code>: qui i primi due numeri sono <code>${o[0]}.${o[1]}</code>.</p>`) +
+          `<p>L’indirizzo è <strong>${isPrivate(ip) ? 'PRIVATO' : 'PUBBLICO'}</strong>.</p>` +
+          `<table class="mini"><tr><th>Classe</th><th>Range privato</th><th>Max host</th></tr>` +
+          `<tr><td>A</td><td>10.0.0.0 – 10.255.255.255 (/8)</td><td>16.777.214</td></tr>` +
+          `<tr><td>B</td><td>172.16.0.0 – 172.31.255.255 (/16)</td><td>65.534</td></tr>` +
+          `<tr><td>C</td><td>192.168.0.0 – 192.168.255.255 (/24 per LAN)</td><td>254</td></tr></table>`
+      };
+    }
+  },
+  /* 14 — quale rete privata per N host */
+  {
+    key: 'privN', title: 'Rete privata per N host',
+    gen() {
+      const r = Math.random();
+      const N = r < 0.3 ? rnd(20, 254) : r < 0.55 ? rnd(255, 2000) : r < 0.8 ? rnd(2001, 65534) : rnd(65535, 3000000);
+      const cls = N <= 254 ? 'C' : N <= 65534 ? 'B' : 'A';
+      const name = { A: '10.x.x.x /8', B: '172.16.x.x – 172.31.x.x /16', C: '192.168.x.x /24' };
+      return {
+        task: `Una scuola deve collegare <strong>${fmtN(N)} PC</strong> nella stessa LAN con una rete privata. Qual è la classe privata <strong>più piccola</strong> sufficiente e quanti host può contenere?`,
+        given: `<div class="given"><div class="gitem"><span class="gk">PC da collegare</span><span class="gv">${fmtN(N)}</span></div></div>`,
+        fields: [
+          { id: 'c', label: 'Classe privata', kind: 'choice', options: ['A', 'B', 'C'].map(c => ({ v: c, t: 'Classe ' + c + ' (' + name[c] + ')' })) },
+          { id: 'h', label: 'Host massimi della classe', kind: 'num', placeholder: 'es. 254' }
+        ],
+        exp: { c: cls, h: CLS[cls].max },
+        solution: `<p>Classe C (<code>192.168.x.x /24</code>): 2<sup>8</sup> − 2 = <strong>254</strong> host. Classe B (<code>172.16.x.x /16</code>): 2<sup>16</sup> − 2 = <strong>65.534</strong> host. Classe A (<code>10.x.x.x /8</code>): 2<sup>24</sup> − 2 = <strong>16.777.214</strong> host.</p>` +
+          `<p>Servono ${fmtN(N)} indirizzi: ${N <= 254 ? 'bastano i 254 della classe C' : N <= 65534 ? 'oltre 254 non basta la classe C, ma bastano i 65.534 della classe B' : 'oltre 65.534 non basta la classe B, serve la classe A'}. Scelta: <strong>classe ${cls}</strong> con <strong>${fmtN(CLS[cls].max)}</strong> host.</p>` +
+          (cls === 'B' ? `<p>In alternativa si potrebbe ampliare la maschera a <code>/16</code> sull’intero blocco <code>192.168.0.0</code>.</p>` : '')
+      };
+    }
+  },
+  /* 15 — spreco di indirizzi */
+  {
+    key: 'spreco', title: 'Spreco di indirizzi IP',
+    gen() {
+      const cls = pick(['A', 'B', 'C']), c = CLS[cls], h = 32 - c.p;
+      const H = cls === 'C' ? rnd(10, 253)
+        : cls === 'B' ? pick([rnd(255, 3000), rnd(3001, 30000), rnd(30001, 65000)])
+          : pick([rnd(65535, 500000), rnd(500001, 5000000), rnd(5000001, 16000000)]);
+      const unused = c.max - H, w = unused / c.max * 100, w2 = Math.round(w * 100) / 100;
+      const pc = x => x.toFixed(2).replace('.', ',');
+      return {
+        task: `Una LAN usa una rete di <strong>classe ${cls}</strong> ma ha effettivamente <strong>${fmtN(H)} host</strong> indirizzati. Come indirizzi disponibili si considerano solo quelli <strong>assegnabili</strong> (2<sup>n</sup> − 2). Calcola gli indirizzi inutilizzati e la <strong>percentuale di spreco</strong>, arrotondata a 2 decimali.`,
+        given: `<div class="given"><div class="gitem"><span class="gk">Rete</span><span class="gv">${cls} <em>/${c.p}</em></span></div>` +
+          `<div class="gitem"><span class="gk">Host effettivi</span><span class="gv">${fmtN(H)}</span></div></div>`,
+        fields: [
+          { id: 'm', label: 'Host assegnabili della classe', kind: 'num', placeholder: 'es. 254' },
+          { id: 'u', label: 'Indirizzi inutilizzati', kind: 'num', placeholder: 'es. 100' },
+          { id: 'w', label: 'Spreco (%)', kind: 'pct', tol: 0.02, placeholder: 'es. 39,37' }
+        ],
+        exp: { m: c.max, u: unused, w: w2 },
+        solution: `<p>La classe ${cls} (<code>/${c.p}</code>) ha ${h} bit di HOST-ID: host assegnabili <code>2<sup>${h}</sup> − 2 = ${fmtN(c.max)}</code>.</p>` +
+          `<p>Indirizzi inutilizzati: <code>${fmtN(c.max)} − ${fmtN(H)} = ${fmtN(unused)}</code>.</p>` +
+          `<p>Spreco = inutilizzati / assegnabili × 100 = <code>${fmtN(unused)} / ${fmtN(c.max)} × 100 = ${pc(w2)} %</code>.</p>` +
+          `<p>Gli indirizzi effettivamente utilizzati sono il <strong>${pc(100 - w)} %</strong> di quelli assegnabili.</p>`
+      };
+    }
+  },
+  /* 16 — switch concatenati */
+  {
+    key: 'switch', title: 'Switch concatenati',
+    gen() {
+      const P = pick([24, 48]);
+      const N = Math.random() < 0.12 ? rnd(8, P) : rnd(P + 1, 254);
+      const n = N <= P ? 1 : Math.ceil((N - 2) / (P - 2));
+      const useful = n * P - 2 * (n - 1);
+      const x = rnd(0, 255);
+      return {
+        task: `Una scuola collega <strong>${N} PC</strong> nella LAN privata indicata. Ha switch da <strong>${P} porte</strong> concatenati: ogni cavo tra due switch sacrifica 1 porta su ciascuno. Quanti switch servono, quante porte restano per i PC e quanti indirizzi IP può assegnare la LAN?`,
+        given: `<div class="given"><div class="gitem"><span class="gk">LAN</span><span class="gv">192.168.${x}.0 <em>/24</em></span></div>` +
+          `<div class="gitem"><span class="gk">PC da collegare</span><span class="gv">${N}</span></div>` +
+          `<div class="gitem"><span class="gk">Porte per switch</span><span class="gv">${P}</span></div></div>`,
+        fields: [
+          { id: 'n', label: 'Switch necessari', kind: 'num', placeholder: 'es. 3' },
+          { id: 'u', label: 'Porte utili per i PC', kind: 'num', placeholder: 'es. 60' },
+          { id: 'i', label: 'Host IP assegnabili nella LAN', kind: 'num', placeholder: 'es. 254' }
+        ],
+        exp: { n, u: useful, i: 254 },
+        solution: (n === 1
+          ? `<p>I ${N} PC stanno su un solo switch da ${P} porte: serve <strong>1 switch</strong>, nessuna porta sacrificata, porte utili <strong>${P}</strong>.</p>`
+          : `<p>Con <em>n</em> switch concatenati si sacrificano 2 porte per ogni cavo di collegamento (una per ciascun switch): porte utili = <code>n·${P} − 2·(n−1)</code>. Ad esempio con 2 switch: ${2 * P} − 2 = ${2 * P - 2}.</p>` +
+            `<p>Deve valere <code>n·${P} − 2(n−1) ≥ ${N}</code>, cioè <code>n ≥ (${N} − 2) / (${P} − 2) = ${((N - 2) / (P - 2)).toFixed(2)}</code>: <strong>n = ${n}</strong>. Porte utili: ${n}·${P} − 2·${n - 1} = <strong>${useful}</strong>.</p>`) +
+          `<p>Le porte fisiche dello switch <strong>non dipendono dagli indirizzi IP</strong> e aggiungere switch non cambia il limite logico: la maschera <code>/24</code> lascia 8 bit di HOST-ID, quindi 2<sup>8</sup> − 2 = <strong>254</strong> indirizzi assegnabili.</p>`
+      };
+    }
+  }
+];
+
+const parseByKind = (kind, raw) => {
+  if (kind === 'ip') return parseIp(raw);
+  if (kind === 'num') return parseNum(raw);
+  if (kind === 'prefix') return parsePrefix(raw);
+  if (kind === 'pct') {
+    const t = String(raw).replace('%', '').replace(/\s/g, '').replace(',', '.');
+    return /^\d+(\.\d+)?$/.test(t) ? Number(t) : null;
+  }
+  return raw === '' || raw == null ? null : raw;
+};
+const showByKind = (f, v) => {
+  if (f.kind === 'ip') return toIp(v);
+  if (f.kind === 'num') return fmtN(v);
+  if (f.kind === 'prefix') return '/' + v;
+  if (f.kind === 'pct') return v.toFixed(2).replace('.', ',') + ' %';
+  const o = f.options.find(x => x.v === v);
+  return o ? o.t : String(v);
+};
+
+/* ===== Interfaccia ===== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
+let idx = 0;
+const cur = SLIDES.map(s => s.gen());
+const ans = SLIDES.map(() => ({}));
+const fb = SLIDES.map(() => ({}));
+const state = SLIDES.map(() => 'pending');   // pending | ok | bad | seen
+const counted = SLIDES.map(() => false);
+let score = 0;
+
+function renderRail() {
+  $('rail').innerHTML = '<h2>Slide</h2>' + SLIDES.map((s, i) =>
+    `<button type="button" class="slide-btn" data-i="${i}" ${i === idx ? 'aria-current="true"' : ''}>` +
+    `<span class="num">${i + 1}</span><span class="lbl">${s.title}</span><span class="dotst ${state[i] === 'pending' ? '' : state[i]}" title="${{ pending: 'da svolgere', ok: 'corretto', bad: 'da correggere', seen: 'soluzione vista' }[state[i]]}"></span></button>`
+  ).join('');
+}
+
+function fieldHtml(f, val, st) {
+  const msg = st === 'ok' ? 'Corretto' : st === 'bad' ? 'Non corretto' : st === 'empty' ? 'Compila questo campo' : '';
+  if (f.kind === 'choice') {
+    return `<div class="fld ${st || ''}" data-fld="${f.id}"><div class="flabel" id="l_${f.id}">${f.label}</div>` +
+      `<div class="choices" role="radiogroup" aria-labelledby="l_${f.id}">` +
+      f.options.map(o => `<button type="button" class="chip ${val === o.v ? 'on' : ''}" role="radio" aria-checked="${val === o.v}" data-f="${f.id}" data-v="${o.v}">${o.t}</button>`).join('') +
+      `</div><div class="fstate">${msg}</div></div>`;
+  }
+  return `<div class="fld ${st || ''}" data-fld="${f.id}"><label class="flabel" for="f_${f.id}">${f.label}</label>` +
+    `<input class="inp" id="f_${f.id}" data-f="${f.id}" value="${esc(val || '')}" placeholder="${esc(f.placeholder || '')}" ` +
+    `inputmode="${f.kind === 'ip' || f.kind === 'pct' ? 'decimal' : 'numeric'}" autocomplete="off" spellcheck="false"><div class="fstate">${msg}</div></div>`;
+}
+
+function renderStage(keepScroll) {
+  const s = SLIDES[idx], d = cur[idx];
+  let h = `<div class="eyebrow">Slide ${idx + 1} di ${SLIDES.length}</div><h2>${s.title}</h2>` +
+    `<p class="task">${d.task}</p>${d.given}` +
+    `<div class="fields">${d.fields.map(f => fieldHtml(f, ans[idx][f.id], fb[idx][f.id])).join('')}</div>`;
+  if (solShown[idx]) {
+    h += `<section class="sol" aria-label="Soluzione"><h3>Soluzione</h3><div class="answers">` +
+      d.fields.map(f => `<div><span>${f.label}</span><strong>${showByKind(f, d.exp[f.id])}</strong></div>`).join('') +
+      `</div><div class="tablewrap">${d.solution}</div></section>`;
+  }
+  h += `<div class="nav"><button class="btn ghost" id="bPrev" type="button" ${idx === 0 ? 'disabled' : ''}>← Slide precedente</button>` +
+    `<button class="btn ghost" id="bNext" type="button" ${idx === SLIDES.length - 1 ? 'disabled' : ''}>Slide successiva →</button></div>`;
+  $('stage').innerHTML = h;
+  renderResults();
+  renderRail();
+}
+const solShown = SLIDES.map(() => false);
+
+function renderResults() {
+  const d = cur[idx], f = fb[idx];
+  const rows = d.fields.map(fl => {
+    const st = f[fl.id];
+    const raw = ans[idx][fl.id];
+    const mark = st === 'ok' ? '<span class="okc">✓</span>' : st === 'bad' ? '<span class="badc">✗</span>' : '<span class="dash">—</span>';
+    const shownAns = st && raw ? esc(fl.kind === 'choice' ? showByKind(fl, raw) : raw) : '—';
+    return `<tr><td>${fl.label}<div class="ans">${shownAns}</div></td><td>${mark}</td></tr>`;
+  }).join('');
+  $('results').innerHTML = `<table class="res"><thead><tr><th>Campo</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  $('tally').textContent = score;
+}
+
+function readInputs() {
+  document.querySelectorAll('.inp').forEach(el => { ans[idx][el.dataset.f] = el.value; });
+}
+
+function verify() {
+  readInputs();
+  const d = cur[idx];
+  let allOk = true;
+  d.fields.forEach(f => {
+    const raw = ans[idx][f.id];
+    if (raw === undefined || String(raw).trim() === '') { fb[idx][f.id] = 'empty'; allOk = false; return; }
+    const v = parseByKind(f.kind, raw);
+    const ok = v !== null && (f.tol ? Math.abs(v - d.exp[f.id]) <= f.tol + 1e-9 : v === d.exp[f.id]);
+    fb[idx][f.id] = ok ? 'ok' : 'bad';
+    if (!ok) allOk = false;
+  });
+  if (state[idx] !== 'seen') state[idx] = allOk ? 'ok' : 'bad';
+  if (allOk && !counted[idx] && state[idx] === 'ok') { counted[idx] = true; score++; }
+  renderStage();
+}
+
+function newExercise() {
+  cur[idx] = SLIDES[idx].gen();
+  ans[idx] = {}; fb[idx] = {}; state[idx] = 'pending'; counted[idx] = false; solShown[idx] = false;
+  renderStage();
+  const first = document.querySelector('.inp, .chip');
+  if (first && first.classList.contains('inp')) first.focus();
+}
+
+function go(i) {
+  if (i < 0 || i >= SLIDES.length) return;
+  readInputs();
+  idx = i;
+  renderStage();
+  window.scrollTo({ top: 0 });
+}
+
+function openDialog() { $('veil').hidden = false; $('dlgYes').focus(); }
+function closeDialog() { $('veil').hidden = true; }
+function showSolution() {
+  readInputs();
+  closeDialog();
+  solShown[idx] = true;
+  if (state[idx] !== 'ok') state[idx] = 'seen';
+  renderStage();
+  const el = document.querySelector('.sol');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* eventi */
+$('rail').addEventListener('click', e => { const b = e.target.closest('.slide-btn'); if (b) go(+b.dataset.i); });
+$('stage').addEventListener('click', e => {
+  const c = e.target.closest('.chip');
+  if (c) {
+    const f = c.dataset.f;
+    ans[idx][f] = c.dataset.v;
+    delete fb[idx][f];
+    c.closest('.choices').querySelectorAll('.chip').forEach(x => {
+      const on = x === c; x.classList.toggle('on', on); x.setAttribute('aria-checked', on);
+    });
+    const box = c.closest('.fld'); box.classList.remove('ok', 'bad', 'empty'); box.querySelector('.fstate').textContent = '';
+    renderResults();
+    return;
+  }
+  if (e.target.closest('#bPrev')) go(idx - 1);
+  if (e.target.closest('#bNext')) go(idx + 1);
+});
+$('stage').addEventListener('input', e => {
+  const el = e.target.closest('.inp');
+  if (!el) return;
+  ans[idx][el.dataset.f] = el.value;
+  delete fb[idx][el.dataset.f];
+  const box = el.closest('.fld'); box.classList.remove('ok', 'bad', 'empty'); box.querySelector('.fstate').textContent = '';
+  renderResults();
+});
+$('stage').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.classList.contains('inp')) verify(); });
+$('bCheck').addEventListener('click', verify);
+$('bNew').addEventListener('click', newExercise);
+$('bSol').addEventListener('click', openDialog);
+$('dlgNo').addEventListener('click', closeDialog);
+$('dlgYes').addEventListener('click', showSolution);
+$('veil').addEventListener('click', e => { if (e.target === $('veil')) closeDialog(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('veil').hidden) closeDialog();
+  const t = e.target.tagName;
+  if (t === 'INPUT' || !$('veil').hidden) return;
+  if (e.key === 'ArrowRight') go(idx + 1);
+  if (e.key === 'ArrowLeft') go(idx - 1);
+});
+
+renderStage();
+</script>
+
+</body></html>
